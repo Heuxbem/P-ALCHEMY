@@ -1,0 +1,2117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P Alchemy — The Primordial Forge</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0a0702;color:#d4b96a;font-family:'Crimson Text',serif;overflow:hidden;user-select:none;}
+  canvas{display:none;position:absolute;top:0;left:0;}
+  #app{width:100vw;height:100vh;position:relative;overflow:hidden;}
+
+  /* ── INTRO CANVAS ── */
+  #introCanvas{display:block;position:absolute;top:0;left:0;z-index:100;}
+
+  /* ── FULLSCREEN NOTICE ── */
+  #fsNotice{
+    position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+    background:rgba(20,14,6,.88);border:1px solid #8a6a2a;
+    color:#c8a84a;padding:7px 18px;border-radius:6px;font-size:13px;
+    z-index:999;pointer-events:none;transition:opacity .5s;
+  }
+
+  /* ── MENU ── */
+  #menuScreen{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;background:#0a0702;
+    z-index:10;
+  }
+  #menuScreen h1{
+    font-family:'Cinzel',serif;font-size:clamp(2rem,6vw,4.5rem);
+    color:#d4a030;letter-spacing:.2em;text-shadow:0 0 40px #a06010,0 0 80px #60300880;
+    margin-bottom:.2em;
+  }
+  #menuScreen .subtitle{color:#8a7040;font-style:italic;font-size:1.1rem;margin-bottom:2.5rem;}
+  .menu-btn{
+    width:240px;padding:14px 0;margin:8px 0;
+    font-family:'Cinzel',serif;font-size:1rem;letter-spacing:.12em;
+    background:linear-gradient(135deg,#3a2410,#1e1208);
+    border:1px solid #6a4a1a;color:#d4a030;cursor:pointer;
+    border-radius:4px;transition:all .2s;
+  }
+  .menu-btn:hover{background:linear-gradient(135deg,#5a3820,#2e1c0c);border-color:#a07030;
+    box-shadow:0 0 16px #80501040;color:#f0c060;transform:scale(1.03);}
+  #loomDeco{margin:1.5rem auto 1rem;opacity:.5;}
+
+  /* ── GAME SCREEN ── */
+  #gameScreen{position:absolute;inset:0;display:none;flex-direction:row;background:#1a1008;}
+
+  /* SIDEBAR */
+  #sidebar{
+    width:260px;min-width:220px;height:100%;
+    background:linear-gradient(180deg,#1e1209,#160e06);
+    border-right:1px solid #3a2810;
+    display:flex;flex-direction:column;position:relative;z-index:5;
+    flex-shrink:0;
+  }
+  #sidebarHeader{
+    padding:10px 12px 6px;background:#120c06;border-bottom:1px solid #2a1c08;
+  }
+  #sidebarHeader h3{font-family:'Cinzel',serif;font-size:.85rem;color:#d4a030;letter-spacing:.1em;}
+  #sidebarHeader .count{font-size:.75rem;color:#8a6a30;margin-top:2px;}
+  #searchBar{
+    margin:6px 8px;padding:5px 9px;background:#0e0904;
+    border:1px solid #3a2810;border-radius:3px;color:#c8a84a;
+    font-size:.8rem;font-family:inherit;width:calc(100% - 16px);outline:none;
+  }
+  #searchBar:focus{border-color:#7a5a20;}
+  #searchBar::placeholder{color:#4a3618;}
+  #elemList{
+    flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 0;
+    scrollbar-width:thin;scrollbar-color:#3a2810 #0e0904;
+  }
+  #elemList::-webkit-scrollbar{width:4px;}
+  #elemList::-webkit-scrollbar-track{background:#0e0904;}
+  #elemList::-webkit-scrollbar-thumb{background:#3a2810;border-radius:2px;}
+  .elem-item{
+    display:flex;align-items:center;gap:8px;
+    padding:6px 10px;cursor:grab;border-bottom:1px solid #1e1408;
+    transition:background .15s;
+  }
+  .elem-item:hover{background:#2a1c0c;}
+  .elem-item.dragging-src{opacity:.4;}
+  .elem-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+  .elem-name{font-size:.8rem;color:#c8a060;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .elem-new{font-size:.65rem;color:#a08030;margin-left:auto;flex-shrink:0;}
+  #sidebarBottom{padding:8px;border-top:1px solid #2a1c08;display:flex;flex-direction:column;gap:5px;}
+  .sb-btn{
+    width:100%;padding:9px 0;font-family:'Cinzel',serif;font-size:.75rem;
+    letter-spacing:.08em;background:#1e1408;border:1px solid #3a2810;
+    color:#a07030;cursor:pointer;border-radius:3px;transition:all .15s;
+  }
+  .sb-btn:hover{background:#2a1c0c;color:#d4a030;border-color:#6a4a1a;}
+  .sb-btn.gold{border-color:#7a5a20;color:#d4b040;}
+  .sb-btn.gold:hover{background:#2a1c08;color:#f0c060;border-color:#c09040;}
+
+  /* CANVAS AREA */
+  #canvasArea{
+    flex:1;position:relative;overflow:hidden;
+    background:radial-gradient(ellipse at 50% 40%,#1e1408 0%,#0e0904 100%);
+  }
+  #topBar{
+    position:absolute;top:0;left:0;right:0;height:44px;
+    background:rgba(14,9,4,.9);border-bottom:1px solid #2a1c08;
+    display:flex;align-items:center;padding:0 10px;gap:8px;z-index:4;
+  }
+  .top-btn{
+    padding:6px 14px;font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.08em;
+    background:#1e1408;border:1px solid #3a2810;color:#a07030;
+    cursor:pointer;border-radius:3px;transition:all .15s;white-space:nowrap;
+  }
+  .top-btn:hover{background:#2a1c0c;color:#d4a030;border-color:#6a4a1a;}
+  .top-btn.unlocked{border-color:#6a5018;color:#c8a040;}
+  #topBarRight{margin-left:auto;display:flex;gap:8px;align-items:center;}
+  #forgeArea{
+    position:absolute;bottom:0;left:0;right:0;height:90px;
+    background:linear-gradient(180deg,rgba(14,9,4,0),rgba(18,11,4,.98));
+    display:flex;align-items:center;justify-content:center;gap:12px;
+    padding:0 10px;z-index:4;border-top:1px solid #2a1c08;
+  }
+  .slot{
+    width:72px;height:62px;border:2px dashed #3a2810;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(10,7,2,.6);position:relative;transition:border-color .2s;
+    cursor:pointer;
+  }
+  .slot:hover{border-color:#6a4a1a;}
+  .slot.filled{border-color:#7a5a20;border-style:solid;background:rgba(20,14,4,.8);}
+  .slot.drop-target{border-color:#c09040;box-shadow:0 0 10px #c0904040;}
+  .slot-content{
+    font-size:.65rem;color:#c8a060;text-align:center;
+    padding:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    max-width:68px;
+  }
+  .slot-dot{width:10px;height:10px;border-radius:50%;margin:0 auto 2px;}
+  #craftBtn{
+    width:64px;height:64px;border-radius:50%;
+    background:radial-gradient(circle,#5a3a10,#2a1808);
+    border:2px solid #7a5a20;color:#d4a030;cursor:pointer;
+    font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.05em;
+    transition:all .2s;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;text-align:center;line-height:1.2;
+  }
+  #craftBtn:hover{background:radial-gradient(circle,#8a5a20,#3a2010);
+    border-color:#c09040;box-shadow:0 0 20px #80501060;transform:scale(1.05);}
+  #craftBtn .eq-sym{font-size:1.2rem;}
+  #clearBtn{
+    padding:8px 14px;font-family:'Cinzel',serif;font-size:.7rem;
+    background:#1e1008;border:1px solid #3a1808;color:#804020;
+    cursor:pointer;border-radius:3px;transition:all .15s;
+  }
+  #clearBtn:hover{background:#2a1408;color:#c06030;border-color:#804020;}
+
+  /* CANVAS ELEMENTS */
+  #workCanvas{position:absolute;inset:0;top:44px;bottom:90px;pointer-events:none;}
+  #elemContainer{position:absolute;inset:0;top:44px;bottom:90px;overflow:hidden;}
+  .canvas-elem{
+    position:absolute;cursor:grab;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:2px;
+    width:68px;padding:6px 4px;border-radius:6px;
+    background:linear-gradient(135deg,#2a1c08,#1a1006);
+    border:1px solid #4a3412;transition:box-shadow .2s;
+    user-select:none;z-index:2;
+  }
+  .canvas-elem:hover{box-shadow:0 0 12px rgba(180,120,40,.3);border-color:#7a5a20;z-index:3;}
+  .canvas-elem.dragging{z-index:100;cursor:grabbing;box-shadow:0 8px 24px rgba(0,0,0,.6);}
+  .canvas-elem .ce-dot{width:18px;height:18px;border-radius:50%;}
+  .canvas-elem .ce-name{font-size:.6rem;color:#c8a060;text-align:center;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62px;}
+
+  /* TOAST */
+  #toast{
+    position:fixed;top:60px;left:50%;transform:translateX(-50%);
+    background:linear-gradient(135deg,#3a2810,#1e1408);
+    border:1px solid #7a5a20;color:#e8c060;
+    padding:10px 24px;border-radius:6px;font-family:'Cinzel',serif;
+    font-size:.85rem;letter-spacing:.08em;z-index:500;
+    opacity:0;transition:opacity .3s;pointer-events:none;
+    box-shadow:0 4px 20px rgba(0,0,0,.6);text-align:center;max-width:80vw;
+  }
+  #toast.visible{opacity:1;}
+
+  /* DICTIONARY OVERLAY */
+  #dictOverlay{
+    position:absolute;inset:0;background:rgba(6,4,2,.95);z-index:20;
+    display:none;flex-direction:column;overflow:hidden;
+  }
+  #dictOverlay.open{display:flex;}
+  #dictHeader{
+    padding:16px 20px;background:#120c06;border-bottom:1px solid #2a1c08;
+    display:flex;align-items:center;gap:16px;
+  }
+  #dictHeader h2{font-family:'Cinzel',serif;color:#d4a030;font-size:1.2rem;}
+  #dictHeader .count{color:#8a6a30;font-size:.85rem;}
+  #dictClose{
+    margin-left:auto;padding:6px 16px;font-family:'Cinzel',serif;font-size:.75rem;
+    background:#1e1408;border:1px solid #3a2810;color:#a07030;cursor:pointer;border-radius:3px;
+  }
+  #dictClose:hover{color:#d4a030;}
+  #dictBody{display:flex;flex:1;overflow:hidden;}
+  #dictCats{
+    width:180px;padding:12px 8px;border-right:1px solid #2a1c08;
+    overflow-y:auto;flex-shrink:0;
+  }
+  .dict-cat-btn{
+    display:block;width:100%;padding:10px 12px;margin-bottom:4px;
+    font-family:'Cinzel',serif;font-size:.75rem;text-align:left;
+    background:#1e1408;border:1px solid #2a1c08;color:#a07030;
+    cursor:pointer;border-radius:3px;transition:all .15s;
+  }
+  .dict-cat-btn:hover,.dict-cat-btn.active{background:#2a1c0c;color:#d4a030;border-color:#6a4a1a;}
+  #dictItems{flex:1;overflow-y:auto;padding:12px;display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start;}
+  .dict-item{
+    display:flex;align-items:center;gap:8px;padding:8px 12px;
+    background:#1a1208;border:1px solid #2a1c08;border-radius:4px;
+    min-width:140px;max-width:200px;cursor:pointer;transition:background .15s;
+  }
+  .dict-item:hover{background:#2a1c0c;border-color:#4a3418;}
+  .dict-item .di-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+  .dict-item .di-name{font-size:.78rem;color:#c8a060;}
+
+  /* QUEST OVERLAY */
+  #questOverlay{
+    position:absolute;inset:0;background:rgba(6,4,2,.95);z-index:20;
+    display:none;flex-direction:column;overflow:hidden;
+  }
+  #questOverlay.open{display:flex;}
+  #questHeader{padding:16px 20px;background:#120c06;border-bottom:1px solid #2a1c08;display:flex;align-items:center;gap:12px;}
+  #questHeader h2{font-family:'Cinzel',serif;color:#d4a030;font-size:1.2rem;}
+  #questClose{margin-left:auto;padding:6px 16px;font-family:'Cinzel',serif;font-size:.75rem;background:#1e1408;border:1px solid #3a2810;color:#a07030;cursor:pointer;border-radius:3px;}
+  #questClose:hover{color:#d4a030;}
+  #questList{flex:1;overflow-y:auto;padding:16px;}
+  .quest-item{
+    padding:14px 18px;margin-bottom:10px;border-radius:6px;
+    background:#1a1208;border:1px solid #2a1c08;display:flex;align-items:center;gap:14px;
+  }
+  .quest-item.done{border-color:#4a6a20;background:#151e08;}
+  .quest-status{font-size:1.2rem;flex-shrink:0;}
+  .quest-info h4{font-family:'Cinzel',serif;font-size:.85rem;color:#c8a040;margin-bottom:3px;}
+  .quest-info p{font-size:.78rem;color:#8a7040;}
+  .quest-reward{margin-left:auto;font-size:.75rem;color:#8a6a30;text-align:right;}
+
+  /* HISTORY PANEL */
+  #historyPanel{
+    position:absolute;right:130px;bottom:100px;width:280px;
+    background:#120c06;border:1px solid #3a2810;border-radius:6px;
+    z-index:10;display:none;max-height:300px;overflow:hidden;
+    flex-direction:column;
+  }
+  #historyPanel.open{display:flex;}
+  #histHeader{padding:8px 12px;background:#1e1408;border-bottom:1px solid #2a1c08;
+    display:flex;align-items:center;}
+  #histHeader span{font-family:'Cinzel',serif;font-size:.75rem;color:#d4a030;}
+  #histClose{margin-left:auto;cursor:pointer;color:#8a6a30;font-size:.9rem;}
+  #histClose:hover{color:#d4a030;}
+  #histList{overflow-y:auto;flex:1;}
+  .hist-item{padding:6px 10px;border-bottom:1px solid #1e1408;font-size:.72rem;color:#a08040;}
+  .hist-item span{color:#c8a060;}
+
+  /* SETTINGS OVERLAY */
+  #settingsOverlay{
+    position:absolute;inset:0;background:rgba(6,4,2,.95);z-index:20;
+    display:none;flex-direction:column;align-items:center;justify-content:center;
+  }
+  #settingsOverlay.open{display:flex;}
+  #settingsOverlay h2{font-family:'Cinzel',serif;color:#d4a030;font-size:1.4rem;margin-bottom:2rem;}
+  .setting-row{display:flex;align-items:center;gap:20px;margin-bottom:14px;}
+  .setting-row label{font-size:.9rem;color:#a08040;width:100px;}
+  .toggle-btn{
+    padding:7px 20px;font-family:'Cinzel',serif;font-size:.78rem;
+    background:#1e1408;border:1px solid #3a2810;color:#a07030;
+    cursor:pointer;border-radius:3px;transition:all .15s;min-width:70px;
+  }
+  .toggle-btn.on{border-color:#6a8a20;color:#a0d040;background:#1a2408;}
+  .toggle-btn:hover{border-color:#7a5a20;color:#d4a030;}
+  .set-close{
+    margin-top:1.5rem;padding:10px 30px;font-family:'Cinzel',serif;font-size:.8rem;
+    background:#1e1408;border:1px solid #3a2810;color:#a07030;cursor:pointer;border-radius:3px;
+  }
+  .set-close:hover{color:#d4a030;border-color:#7a5a20;}
+
+  /* DRAG GHOST */
+  #dragGhost{
+    position:fixed;pointer-events:none;z-index:1000;
+    display:none;flex-direction:column;align-items:center;gap:2px;
+    padding:6px 8px;border-radius:6px;background:#2a1c08;border:1px solid #7a5a20;
+    transform:translate(-50%,-50%);
+  }
+  #dragGhost .dg-dot{width:16px;height:16px;border-radius:50%;}
+  #dragGhost .dg-name{font-size:.65rem;color:#c8a060;white-space:nowrap;}
+
+  /* PARTICLE CANVAS */
+  #particleCanvas{position:absolute;inset:0;top:44px;bottom:90px;pointer-events:none;z-index:50;}
+
+  /* CUTSCENE OVERLAY */
+  #cutsceneCanvas{position:absolute;inset:0;z-index:200;display:none;}
+
+  /* Scrollbar for everything */
+  *{scrollbar-width:thin;scrollbar-color:#3a2810 #0e0904;}
+  *::-webkit-scrollbar{width:5px;height:5px;}
+  *::-webkit-scrollbar-track{background:#0e0904;}
+  *::-webkit-scrollbar-thumb{background:#3a2810;border-radius:2px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- FULLSCREEN NOTICE -->
+  <div id="fsNotice">Press F11 for fullscreen to enjoy the full cinematic experience ✦</div>
+
+  <!-- INTRO CANVAS -->
+  <canvas id="introCanvas"></canvas>
+
+  <!-- CUTSCENE CANVAS (mid-game) -->
+  <canvas id="cutsceneCanvas"></canvas>
+
+  <!-- DRAG GHOST -->
+  <div id="dragGhost"><div class="dg-dot" id="ghostDot"></div><div class="dg-name" id="ghostName"></div></div>
+
+  <!-- MENU -->
+  <div id="menuScreen">
+    <canvas id="menuBg" style="position:absolute;inset:0;z-index:0;"></canvas>
+    <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;">
+      <h1>P ALCHEMY</h1>
+      <p class="subtitle" style="margin-bottom:.5rem;font-size:.95rem;">The Primordial Forge</p>
+      <canvas id="loomDeco" width="120" height="60"></canvas>
+      <div style="margin-bottom:2rem;"></div>
+      <button class="menu-btn" id="btnResume" style="display:none;">RESUME</button>
+      <button class="menu-btn" id="btnLoad" style="display:none;">LOAD GAME</button>
+      <button class="menu-btn" id="btnNew">START GAME</button>
+      <button class="menu-btn" id="btnSettings" style="margin-top:4px;">SETTINGS</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settingsOverlay">
+    <h2>SETTINGS</h2>
+    <div class="setting-row"><label>Music</label><button class="toggle-btn on" id="toggleMusic">ON</button></div>
+    <div class="setting-row"><label>SFX</label><button class="toggle-btn on" id="toggleSfx">ON</button></div>
+    <button class="set-close" id="settingsClose">BACK</button>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="gameScreen">
+    <!-- SIDEBAR -->
+    <div id="sidebar">
+      <div id="sidebarHeader">
+        <h3>✦ DISCOVERED</h3>
+        <div class="count" id="discCount">Found: 4 / 402</div>
+      </div>
+      <input type="text" id="searchBar" placeholder="Search elements..." autocomplete="off">
+      <div id="elemList"></div>
+      <div id="sidebarBottom">
+        <button class="sb-btn gold" id="btnSave">✦ Save Game</button>
+        <button class="sb-btn" id="btnDict">COMPENDIUM</button>
+      </div>
+    </div>
+    <!-- CANVAS AREA -->
+    <div id="canvasArea">
+      <div id="topBar">
+        <span style="font-family:'Cinzel',serif;font-size:.7rem;color:#6a4a1a;letter-spacing:.1em;">THE FORGE</span>
+        <div id="topBarRight">
+          <button class="top-btn" id="btnCiv" style="display:none;">✦ CIVILIZATION</button>
+          <button class="top-btn" id="btnElara" style="display:none;">⚗ ELARA'S TABLE</button>
+          <button class="top-btn" id="btnHist">HISTORY</button>
+          <button class="top-btn" id="btnClean">CLEAN</button>
+          <button class="top-btn" id="btnGameSettings">⚙</button>
+          <button class="top-btn" id="btnQuests">QUESTS</button>
+        </div>
+      </div>
+      <canvas id="particleCanvas"></canvas>
+      <div id="elemContainer"></div>
+      <div id="forgeArea">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;">
+          <div class="slot" id="slot0"><span class="slot-content" style="color:#3a2810;font-size:.7rem;">drop here</span></div>
+          <div class="slot" id="slot1"><span class="slot-content" style="color:#3a2810;font-size:.7rem;">drop here</span></div>
+          <div class="slot" id="slot2"><span class="slot-content" style="color:#3a2810;font-size:.7rem;">drop here</span></div>
+          <div class="slot" id="slot3" style="display:none;"><span class="slot-content" style="color:#3a2810;font-size:.7rem;">drop here</span></div>
+          <div class="slot" id="slot4" style="display:none;"><span class="slot-content" style="color:#3a2810;font-size:.7rem;">drop here</span></div>
+        </div>
+        <button id="craftBtn"><span class="eq-sym">⚗</span><span>FORGE</span></button>
+        <button id="clearBtn">CLEAR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="historyPanel">
+    <div id="histHeader"><span>RECENT CRAFTS</span><span id="histClose">✕</span></div>
+    <div id="histList"></div>
+  </div>
+
+  <!-- DICTIONARY -->
+  <div id="dictOverlay">
+    <div id="dictHeader">
+      <h2>ELEMENT COMPENDIUM</h2>
+      <span class="count" id="dictCount"></span>
+      <button id="dictClose">CLOSE</button>
+    </div>
+    <div id="dictBody">
+      <div id="dictCats"></div>
+      <div id="dictItems"></div>
+    </div>
+  </div>
+
+  <!-- QUESTS -->
+  <div id="questOverlay">
+    <div id="questHeader">
+      <h2>QUEST LOG</h2>
+      <span id="questProgress" style="font-size:.85rem;color:#8a7040;"></span>
+      <button id="questClose" style="margin-left:auto;padding:6px 16px;font-family:'Cinzel',serif;font-size:.75rem;background:#1e1408;border:1px solid #3a2810;color:#a07030;cursor:pointer;border-radius:3px;">CLOSE</button>
+    </div>
+    <div id="questList"></div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+// GAME DATA
+// ═══════════════════════════════════════════════════════════════════════
+const COMBOS_RAW = {"Air,Water":"Mist","Air,Air":"Wind","Fire,Fire":"Heat","Earth,Earth":"Land","Water,Water":"Ocean","Air,Earth":"Dust","Air,Fire":"Pressure","Air,Energy":"Wind Energy","Air,Steam":"Cloud","Air,Cloud":"Sky","Air,Mist":"Cold","Air,Ice":"Frost","Fire,Energy":"Heat Energy","Fire,Water":"Steam","Fire,Sand":"Glass","Fire,Stone":"Metal","Earth,Water":"Mud","Water,Stone":"Mineral","Water,Cold":"Ice","Earth,Fire":"Lava","Earth,Dust":"Stone","Earth,Steam":"Geyser","Earth,Land":"Mountain","Earth,Rain":"Plant","Earth,Lava":"Volcano","Moon,Ocean":"Wave","Glass,Sand":"Time","Ocean,Sand":"Beach","Beach,Ocean":"Sea","Heat,Cold":"Temperature","Heat,Temperature":"High Temperature","Cold,Temperature":"Low Temperature","Metal,Earth":"Magnet","Dust,Dust":"Sand","Mud,Mud":"Clay","Lava,Lava":"Magma","Ice,Ice":"Iceberg","Stone,Stone":"Rock","Cloud,Cloud":"Fog","Mist,Mist":"Vapor","Energy,Energy":"Electricity","Night,Sky":"Darkness","Darkness,Darkness":"Void","Magnet,Magnet":"Magnetic Field","Darkness,Matter":"Dark Matter","Heat Energy,Electricity,High Temperature":"Plasma","Sky,Sun,Time":"Day","Sky,Moon,Time":"Night","Air,Air,Air":"Gust","Earth,Earth,Earth":"Tectonic Plates","Fire,Fire,Fire":"Energy","Sky,Dust,Stone":"Moon","Earth,Plant,Water":"Life","Planet,Moon,Sun":"Solar System","Solar System,Star,Space":"Galaxy","Air,Water,Earth,Fire":"Matter","Land,Ocean,Volcano,Sky":"Planet","Plasma,Dark Matter,Energy,Magnetic Field,Mass":"Space","Earth,Fire,Life":"Human","Rain,Rain":"Flood","Flood,Land":"River","River,River":"Lake","Lake,Mountain":"Waterfall","Ocean,Wind":"Waves","Storm,Storm":"Hurricane","Storm,Cold":"Blizzard","Storm,Sand":"Sandstorm","Sand,Wind":"Dune","Rock,Water":"Pebble","Rock,Rock":"Boulder","Boulder,Boulder":"Cliff","Cliff,Ocean":"Coast","Mountain,Mountain":"Range","Range,Snow":"Alps","Snow,Snow":"Glacier","Glacier,Ocean":"Fjord","Plant,Plant":"Forest","Forest,Fire":"Ash","Forest,Rain":"Jungle","Jungle,Heat":"Swamp","Swamp,Mud":"Bog","Plant,Sun":"Flower","Flower,Water":"Pollen","Flower,Wind":"Seed","Seed,Earth":"Tree","Tree,Tree":"Grove","Grove,Grove":"Woodland","Woodland,Mountain":"Forest","Stone,Heat":"Obsidian","Obsidian,Time":"Crystal","Crystal,Light":"Prism","Sand,Water":"Quicksand","Clay,Fire":"Brick","Brick,Brick":"Wall","Ice,Fire":"Water","Snow,Fire":"Slush","Lava,Water":"Basalt","Basalt,Time":"Fossil","Fossil,Life":"Dinosaur","Volcano,Lava":"Eruption","Eruption,Sky":"Ash Cloud","Ash,Rain":"Mud Rain","Geyser,Mineral":"Hot Spring","Hot Spring,Life":"Bacteria","Bacteria,Time":"Algae","Algae,Sun":"Oxygen","Oxygen,Fire":"Combustion","Wave,Wind":"Surf","Sea,Moon":"Tide","Tide,Beach":"Shoreline","Fog,Sun":"Rainbow","Rainbow,Water":"Dew","Dew,Plant":"Morning","Morning,Sky":"Dawn","Dawn,Sun":"Sunrise","Air,Pressure":"Wind Gust","Cloud,Sun":"Partly Cloudy","Rain,Sun":"Rainbow","Rain,Cold":"Sleet","Sleet,Cold":"Snow","Snow,Wind":"Snowstorm","Fog,Cold":"Frost","Lightning,Cloud":"Thunderstorm","Electricity,Cloud":"Lightning","Lightning,Sand":"Fulgurite","Thunderstorm,Ocean":"Waterspout","Wind,Rain":"Squall","Heat,Air":"Haze","Haze,Sky":"Smog","Cold,Air":"Arctic Air","Arctic Air,Ocean":"Polar Vortex","Fire,Wood":"Charcoal","Charcoal,Fire":"Coke","Coke,Metal":"Steel","Steel,Steel":"Iron Beam","Fire,Alcohol":"Explosion","Heat,Metal":"Molten Metal","Molten Metal,Cold":"Cast Iron","Fire,Pressure":"Forge","Forge,Metal":"Tool","Tool,Stone":"Hammer","Hammer,Hammer":"Anvil","Fire,Gas":"Flame","Gas,Air":"Vapor Trail","Heat,Earth":"Dry Land","Heat,Rock":"Pumice","Pumice,Water":"Loofah","Water,Salt":"Saltwater","Saltwater,Sun":"Salt","Salt,Earth":"Soil","Soil,Plant":"Garden","Garden,Water":"Orchard","Water,Mineral":"Spring Water","Spring Water,Cold":"Ice Water","Ocean,Life":"Fish","Fish,Fish":"School of Fish","School of Fish,Human":"Fisherman","Fish,Fire":"Cooked Fish","Waves,Waves":"Tsunami","Ocean,Cold":"Frozen Ocean","Frozen Ocean,Sun":"Arctic","Arctic,Life":"Penguin","Penguin,Penguin":"Colony","Life,Water":"Amoeba","Amoeba,Time":"Cell","Cell,Cell":"Organism","Organism,Time":"Evolution","Evolution,Land":"Animal","Animal,Human":"Domestication","Life,Air":"Insect","Insect,Plant":"Butterfly","Butterfly,Wind":"Migration","Life,Stone":"Shell","Shell,Ocean":"Coral","Coral,Coral":"Reef","Reef,Life":"Ecosystem","Life,Light":"Bioluminescence","Bioluminescence,Ocean":"Deep Sea","Animal,Animal":"Herd","Herd,Land":"Savanna","Animal,Cold":"Hibernation","Plant,Cold":"Dormancy","Life,Mutation":"Species","Mutation,Time":"Mutation","Life,Life":"Reproduction","Life,Death":"Cycle","Death,Earth":"Decomposition","Decomposition,Plant":"Compost","Compost,Earth":"Fertile Soil","Fertile Soil,Plant":"Crop","Crop,Human":"Harvest","Electricity,Water":"Electrolysis","Electrolysis,Metal":"Electroplating","Electricity,Metal":"Circuit","Circuit,Circuit":"Computer Chip","Computer Chip,Energy":"Processor","Electricity,Glass":"Light Bulb","Light Bulb,Energy":"Lamp","Lamp,Lamp":"Street Light","Electricity,Air":"Spark","Spark,Gas":"Explosion","Explosion,Metal":"Bullet","Bullet,Fire":"Gunpowder","Gunpowder,Metal":"Cannon","Metal,Metal":"Alloy","Alloy,Heat":"Bronze","Bronze,Bronze":"Bell","Bell,Air":"Sound","Sound,Sound":"Music","Music,Human":"Song","Metal,Wire":"Cable","Cable,Electricity":"Power Line","Wire,Metal":"Wire","Wind Energy,Wind Energy":"Wind Farm","Wind Farm,Electricity":"Grid","Electricity,Sun":"Solar Power","Solar Power,Grid":"Clean Energy","Water,Metal":"Pipe","Pipe,Pipe":"Plumbing","Steam,Metal":"Steam Engine","Steam Engine,Metal":"Train","Train,Train":"Railway","Earth,Pressure":"Diamond","Diamond,Light":"Sparkle","Coal,Pressure":"Diamond","Rock,Fire":"Pumice","Mineral,Fire":"Gemstone","Gemstone,Metal":"Jewelry","Stone,Water":"Erosion","Erosion,Time":"Canyon","Canyon,River":"Grand Canyon","Mountain,Erosion":"Valley","Valley,River":"Floodplain","Tectonic Plates,Tectonic Plates":"Earthquake","Earthquake,Ocean":"Tsunami","Earthquake,Mountain":"Landslide","Landslide,River":"Dam","Volcano,Ocean":"Island","Island,Life":"Ecosystem","Island,Human":"Civilization Seed","Magma,Magma":"Lava Lake","Obsidian,Water":"Volcanic Glass","Space,Space":"Cosmos","Star,Star":"Binary Star","Binary Star,Time":"Neutron Star","Neutron Star,Neutron Star":"Black Hole","Black Hole,Matter":"Singularity","Galaxy,Galaxy":"Galactic Cluster","Galactic Cluster,Time":"Universe","Universe,Life":"Multiverse","Planet,Planet":"Orbit","Orbit,Time":"Year","Solar System,Solar System":"Nebula","Nebula,Gravity":"Protostar","Protostar,Energy":"Star","Comet,Ice":"Comet Tail","Comet,Earth":"Meteor","Meteor,Ocean":"Crater","Meteor,Life":"Panspermia","Space,Cold":"Absolute Zero","Absolute Zero,Matter":"Superconductor","Dark Matter,Dark Matter":"Dark Energy","Dark Energy,Universe":"Expansion","Black Hole,Time":"Time Dilation","Space,Human":"Astronaut","Astronaut,Planet":"Space Colony","Space Colony,Life":"New Civilization","Plasma,Plasma":"Fusion","Fusion,Energy":"Fusion Reactor","Human,Human":"Family","Family,Family":"Tribe","Tribe,Tribe":"Village","Village,Village":"Town","Town,Town":"City","City,City":"Nation","Nation,Nation":"Empire","Empire,Time":"History","Human,Fire":"Campfire","Campfire,Stone":"Hearth","Human,Stone":"Tool User","Tool User,Tool":"Craftsman","Human,Water":"Swimmer","Human,Animal":"Rider","Rider,Horse":"Cavalry","Human,Plant":"Farmer","Farmer,Crop":"Agriculture","Agriculture,Water":"Irrigation","Human,Metal":"Blacksmith","Blacksmith,Fire":"Forge Master","Human,Ocean":"Sailor","Sailor,Wind":"Navigator","Navigator,Star":"Astronomer","Astronomer,Telescope":"Discovery","Human,Time":"Elder","Elder,Knowledge":"Wisdom","Knowledge,Knowledge":"Library","Library,Human":"Scholar","Scholar,Alchemy":"Alchemist","Matter,Energy":"Gas","Reaction,Water":"Solution","Solution,Salt":"Brine","Brine,Fire":"Vapor","Matter,Cold":"Solid","Matter,Heat":"Liquid","Gas,Pressure":"Compressed Gas","Compressed Gas,Metal":"Tank","Oxygen,Hydrogen":"Water Molecule","Carbon,Carbon":"Graphite","Graphite,Pressure":"Diamond","Iron,Oxygen":"Rust","Rust,Water":"Iron Oxide","Acid,Metal":"Dissolution","Acid,Stone":"Cave","Cave,Water":"Underground Lake","Underground Lake,Life":"Cave Fish","Nitrogen,Cold":"Liquid Nitrogen","Liquid Nitrogen,Life":"Cryogenics","Sun,Glass":"Lens","Lens,Fire":"Focused Light","Focused Light,Paper":"Burn","Light,Crystal":"Spectrum","Spectrum,Rain":"Rainbow","Light,Water":"Reflection","Reflection,Mirror":"Echo","Mirror,Mirror":"Infinity","Light,Speed":"Photon","Photon,Photon":"Laser","Laser,Metal":"Cutting","Light,Darkness":"Shadow","Shadow,Time":"Sundial","Time,Time":"Eternity","Eternity,Life":"Immortality","Immortality,Human":"God","God,Fire":"Wrath","God,Water":"Flood Myth","God,Earth":"Creation","Time,Human":"Aging","Aging,Aging":"Death","Death,Life":"Ghost","Ghost,Stone":"Ruin","Ruin,Time":"Archaeology","Archaeology,Earth":"Artifact","Artifact,Human":"Museum","Alchemy,Fire":"Philosopher's Stone","Philosopher's Stone,Metal":"Gold","Gold,Gold":"Treasury","Treasury,Human":"Economy","Economy,City":"Market","Market,Ship":"Trade Route","Life,Electricity":"Spark of Life","Spark of Life,Matter":"Consciousness","Consciousness,Time":"Memory","Memory,Human":"Culture","Culture,Music":"Civilization","Civilization,Space":"Space Age","Space Age,Human":"Spaceship","Spaceship,Star":"Interstellar","Interstellar,Life":"Alien","Alien,Human":"First Contact","Moon,Night":"Moonlight","Moonlight,Plant":"Night Bloom","Night Bloom,Life":"Nocturnal","Star,Wish":"Shooting Star","Wish,Life":"Hope","Dream,Human":"Inspiration","Inspiration,Art":"Masterpiece","Art,Fire":"Forge of Creation","Void,Energy":"Null Energy","Null Energy,Matter":"Antimatter","Antimatter,Matter":"Annihilation","Annihilation,Space":"Big Bang","Big Bang,Time":"Origin","Origin,Life":"First Life","First Life,Evolution":"Tree of Life","Tree of Life,Human":"Mythology","Mythology,Star":"Constellation","Constellation,Night":"Star Map","Star Map,Ocean":"Navigation","Navigation,Human":"Explorer","Explorer,Land":"New World","New World,Life":"Biodiversity","Biodiversity,Human":"Medicine","Medicine,Life":"Healing","Healing,Time":"Recovery","Fire,Ice":"Steam Explosion","Steam Explosion,Earth":"Crater","Air,Void":"Silence","Silence,Night":"Peace","Peace,Human":"Utopia","Utopia,Technology":"Singularity","Metal,Lightning":"Conductor","Conductor,Sound":"Amplifier","Wood,Fire":"Smoke","Smoke,Air":"Smog","Rain,Earth":"Erosion","Snow,Earth":"Permafrost","Permafrost,Life":"Mammoth","Mammoth,Time":"Extinction","Extinction,Life":"Rebirth","Life,Fire":"Phoenix","Phoenix,Ash":"Resurrection","Resurrection,Human":"Miracle"};
+
+const COLORS_RAW = {"Air":[240,248,255],"Earth":[139,69,19],"Fire":[255,69,0],"Water":[30,144,255],"Rain":[100,150,255],"Wind":[220,235,255],"Heat":[255,140,0],"Land":[101,67,33],"Ocean":[10,50,150],"Dust":[194,178,128],"Pressure":[200,200,200],"Wind Energy":[255,255,100],"Cloud":[248,248,255],"Sky":[135,206,235],"Cold":[150,200,255],"Frost":[200,230,255],"Heat Energy":[255,200,0],"Steam":[255,255,200],"Lava":[200,0,0],"Glass":[240,240,240],"Metal":[176,190,197],"Mud":[101,67,33],"Mineral":[180,180,200],"Ice":[173,216,230],"Stone":[128,128,128],"Geyser":[100,150,200],"Mountain":[120,110,100],"Plant":[34,139,34],"Volcano":[180,40,40],"Wave":[20,100,200],"Time":[192,192,192],"Beach":[245,222,179],"Sea":[15,75,175],"Temperature":[200,200,200],"High Temperature":[255,100,0],"Low Temperature":[100,150,255],"Magnet":[176,190,197],"Sand":[237,201,175],"Clay":[160,82,45],"Magma":[220,20,60],"Iceberg":[200,220,240],"Rock":[105,105,105],"Fog":[250,250,250],"Vapor":[255,255,255],"Electricity":[255,255,0],"Darkness":[10,10,20],"Void":[0,0,0],"Magnetic Field":[150,170,180],"Dark Matter":[5,5,15],"Plasma":[255,50,255],"Day":[255,240,200],"Night":[25,25,50],"Gust":[210,230,255],"Tectonic Plates":[90,60,30],"Energy":[255,255,0],"Moon":[240,240,240],"Life":[50,205,50],"Solar System":[20,20,60],"Galaxy":[15,15,40],"Matter":[100,100,100],"Planet":[50,40,70],"Space":[5,5,25],"Mist":[220,230,255],"Star":[255,240,100],"Sun":[255,215,0],"Mass":[80,80,100],"Flood":[30,100,200],"River":[60,130,200],"Lake":[80,150,210],"Waterfall":[100,180,230],"Storm":[80,80,100],"Hurricane":[60,60,90],"Blizzard":[200,220,240],"Sandstorm":[200,160,80],"Dune":[220,190,100],"Pebble":[150,140,130],"Boulder":[120,110,100],"Cliff":[130,110,90],"Coast":[180,200,160],"Range":[100,90,80],"Alps":[230,235,240],"Snow":[240,245,255],"Glacier":[200,225,245],"Fjord":[60,100,150],"Forest":[34,100,34],"Ash":[120,120,120],"Jungle":[20,120,20],"Swamp":[60,80,40],"Bog":[50,65,30],"Flower":[255,150,180],"Pollen":[255,230,80],"Seed":[180,140,60],"Tree":[60,40,20],"Grove":[40,100,40],"Woodland":[50,90,30],"Obsidian":[25,20,30],"Crystal":[180,220,255],"Prism":[200,200,255],"Quicksand":[200,175,120],"Brick":[180,80,50],"Wall":[160,140,120],"Slush":[180,200,210],"Basalt":[60,60,65],"Fossil":[160,140,100],"Dinosaur":[80,120,60],"Eruption":[220,60,20],"Ash Cloud":[100,100,105],"Hot Spring":[150,200,200],"Bacteria":[140,200,120],"Algae":[60,160,80],"Oxygen":[210,235,255],"Combustion":[255,120,30],"Surf":[60,160,200],"Tide":[30,110,180],"Shoreline":[220,210,170],"Dew":[200,230,245],"Morning":[255,220,180],"Dawn":[255,180,120],"Sunrise":[255,140,60],"Wind Gust":[210,225,245],"Partly Cloudy":[200,210,220],"Sleet":[170,190,210],"Snowstorm":[220,235,250],"Lightning":[255,255,80],"Thunderstorm":[70,70,100],"Fulgurite":[180,170,130],"Waterspout":[100,150,200],"Squall":[110,130,160],"Haze":[200,195,175],"Arctic Air":[180,210,240],"Polar Vortex":[140,180,220],"Charcoal":[40,40,40],"Coke":[35,35,35],"Steel":[160,170,180],"Iron Beam":[140,150,160],"Explosion":[255,100,20],"Molten Metal":[255,150,50],"Cast Iron":[80,80,85],"Forge":[200,100,30],"Tool":[140,130,110],"Hammer":[130,120,110],"Anvil":[90,85,80],"Flame":[255,130,30],"Vapor Trail":[220,225,230],"Dry Land":[180,155,110],"Pumice":[190,185,175],"Loofah":[230,210,170],"Saltwater":[40,100,160],"Salt":[240,240,235],"Soil":[110,75,40],"Garden":[80,160,60],"Orchard":[100,160,60],"Spring Water":[160,210,230],"Ice Water":[180,220,240],"Fish":[80,140,180],"School of Fish":[60,120,170],"Fisherman":[140,100,70],"Cooked Fish":[200,150,100],"Waves":[40,130,200],"Tsunami":[20,80,160],"Frozen Ocean":[160,200,220],"Arctic":[200,230,240],"Penguin":[30,30,30],"Colony":[80,80,80],"Amoeba":[180,220,180],"Cell":[160,210,170],"Organism":[130,190,150],"Evolution":[100,180,120],"Animal":[160,130,90],"Domestication":[190,160,110],"Insect":[120,150,60],"Butterfly":[220,160,200],"Migration":[180,160,130],"Shell":[220,200,170],"Coral":[255,100,80],"Reef":[200,120,90],"Ecosystem":[80,160,100],"Bioluminescence":[80,200,200],"Deep Sea":[10,30,60],"Herd":[150,120,80],"Savanna":[200,180,100],"Hibernation":[120,100,80],"Dormancy":[100,120,80],"Species":[140,180,140],"Mutation":[160,100,200],"Reproduction":[200,180,200],"Cycle":[150,150,150],"Death":[40,35,40],"Decomposition":[80,70,60],"Compost":[100,80,50],"Fertile Soil":[80,55,30],"Crop":[200,180,80],"Harvest":[220,190,90],"Electrolysis":[100,180,220],"Electroplating":[150,170,190],"Circuit":[40,160,80],"Computer Chip":[50,180,100],"Processor":[60,200,120],"Light Bulb":[255,250,200],"Lamp":[250,240,180],"Street Light":[240,235,160],"Spark":[255,240,100],"Bullet":[160,155,140],"Gunpowder":[60,55,50],"Cannon":[80,75,70],"Alloy":[170,175,185],"Bronze":[180,130,70],"Bell":[200,160,80],"Sound":[200,200,220],"Music":[220,180,220],"Song":[230,190,230],"Cable":[80,60,40],"Power Line":[100,80,50],"Wire":[180,150,100],"Wind Farm":[200,220,240],"Grid":[120,160,120],"Solar Power":[255,220,100],"Clean Energy":[120,220,150],"Pipe":[120,130,140],"Plumbing":[100,120,130],"Steam Engine":[140,130,120],"Train":[80,80,90],"Railway":[100,95,90],"Diamond":[220,240,255],"Sparkle":[240,250,255],"Gemstone":[200,100,200],"Jewelry":[220,180,100],"Erosion":[160,140,110],"Canyon":[180,130,90],"Grand Canyon":[200,150,100],"Valley":[140,160,100],"Floodplain":[120,150,100],"Earthquake":[160,130,80],"Landslide":[140,120,80],"Dam":[120,110,100],"Island":[180,200,160],"Civilization Seed":[220,200,120],"Lava Lake":[200,20,20],"Volcanic Glass":[20,15,25],"Cosmos":[5,5,20],"Binary Star":[255,220,120],"Neutron Star":[200,210,240],"Black Hole":[5,5,5],"Singularity":[100,20,120],"Galactic Cluster":[10,10,30],"Universe":[5,5,15],"Multiverse":[10,5,25],"Orbit":[80,80,120],"Year":[160,140,180],"Nebula":[100,60,140],"Gravity":[80,80,100],"Protostar":[200,150,80],"Comet":[200,220,240],"Comet Tail":[180,200,230],"Meteor":[160,140,120],"Crater":[140,120,100],"Panspermia":[120,200,180],"Absolute Zero":[180,200,230],"Superconductor":[100,200,220],"Dark Energy":[5,5,20],"Expansion":[20,15,35],"Time Dilation":[100,80,140],"Astronaut":[200,210,220],"Space Colony":[80,100,120],"New Civilization":[160,200,180],"Fusion":[255,180,80],"Fusion Reactor":[220,160,60],"Family":[220,190,160],"Tribe":[180,150,110],"Village":[200,175,130],"Town":[180,160,120],"City":[160,160,170],"Nation":[140,130,160],"Empire":[120,100,150],"History":[160,140,100],"Campfire":[220,130,60],"Hearth":[200,120,70],"Tool User":[180,155,120],"Craftsman":[160,135,100],"Swimmer":[80,160,200],"Rider":[170,140,100],"Cavalry":[140,110,80],"Farmer":[160,140,90],"Agriculture":[140,170,80],"Irrigation":[80,160,180],"Blacksmith":[80,70,60],"Forge Master":[180,90,40],"Sailor":[60,100,160],"Navigator":[70,110,170],"Astronomer":[60,60,120],"Telescope":[80,80,100],"Discovery":[200,200,100],"Elder":[200,175,140],"Knowledge":[220,200,160],"Wisdom":[230,210,170],"Library":[180,160,130],"Scholar":[200,180,150],"Alchemist":[160,120,80],"Alchemy":[140,100,60],"Reaction":[180,150,100],"Solution":[150,180,200],"Brine":[120,150,170],"Solid":[160,155,150],"Liquid":[80,140,200],"Gas":[220,230,240],"Compressed Gas":[180,200,220],"Tank":[100,110,100],"Hydrogen":[220,230,240],"Water Molecule":[160,200,230],"Graphite":[60,60,65],"Iron":[160,155,150],"Rust":[180,90,50],"Iron Oxide":[160,80,40],"Acid":[180,220,100],"Dissolution":[150,200,180],"Cave":[60,50,40],"Underground Lake":[40,70,100],"Cave Fish":[200,200,180],"Nitrogen":[200,215,230],"Liquid Nitrogen":[180,210,230],"Cryogenics":[160,200,230],"Lens":[200,220,240],"Focused Light":[255,250,150],"Burn":[220,100,50],"Spectrum":[200,180,220],"Reflection":[200,210,230],"Mirror":[230,235,240],"Echo":[200,200,210],"Infinity":[100,80,140],"Speed":[200,220,255],"Photon":[255,255,200],"Laser":[255,50,50],"Cutting":[200,180,160],"Shadow":[40,40,50],"Sundial":[200,180,140],"Eternity":[160,140,200],"Immortality":[200,180,230],"God":[255,240,180],"Wrath":[220,50,30],"Flood Myth":[40,80,160],"Creation":[200,190,150],"Aging":[180,160,140],"Ghost":[210,215,225],"Ruin":[130,120,100],"Archaeology":[180,165,130],"Artifact":[200,175,130],"Museum":[190,175,155],"Philosopher's Stone":[180,80,30],"Gold":[255,200,50],"Treasury":[220,180,60],"Economy":[180,160,100],"Market":[200,175,120],"Ship":[100,130,100],"Trade Route":[160,140,100],"Spark of Life":[255,220,100],"Consciousness":[200,180,230],"Memory":[180,170,210],"Culture":[200,170,200],"Civilization":[180,155,170],"Space Age":[80,100,160],"Spaceship":[160,175,195],"Interstellar":[30,40,80],"Alien":[120,200,140],"First Contact":[150,220,180],"Moonlight":[200,210,230],"Night Bloom":[120,60,120],"Nocturnal":[40,40,60],"Shooting Star":[255,240,180],"Wish":[230,210,255],"Hope":[220,230,255],"Dream":[180,160,220],"Inspiration":[220,200,240],"Art":[220,180,200],"Masterpiece":[240,200,180],"Forge of Creation":[200,100,30],"Null Energy":[50,50,60],"Antimatter":[80,20,80],"Annihilation":[100,20,60],"Big Bang":[255,200,150],"Origin":[220,200,180],"First Life":[100,200,120],"Tree of Life":[60,150,60],"Mythology":[160,130,180],"Constellation":[200,200,255],"Star Map":[160,170,220],"Navigation":[80,120,180],"Explorer":[160,130,90],"New World":[140,180,130],"Biodiversity":[80,160,80],"Medicine":[180,220,200],"Healing":[160,210,190],"Recovery":[180,215,200],"Steam Explosion":[180,200,220],"Silence":[220,220,230],"Peace":[200,220,200],"Utopia":[180,220,210],"Conductor":[160,170,140],"Amplifier":[140,150,160],"Smoke":[100,100,100],"Permafrost":[180,200,220],"Mammoth":[140,120,100],"Extinction":[80,70,60],"Rebirth":[160,200,180],"Phoenix":[220,100,40],"Resurrection":[200,180,160],"Miracle":[220,210,190],"Coal":[35,30,35],"Wood":[120,80,40],"Paper":[240,235,220],"Alcohol":[220,230,240],"Carbon":[40,40,45],"Horse":[160,120,80],"Light":[255,250,230],"Poison":[120,200,60]};
+
+const CATEGORIES = {"Basics":["Air","Earth","Fire","Water"],"Nature":["Rain","Wind","Heat","Land","Ocean","Dust","Cloud","Sky","Cold","Frost","Steam","Lava","Glass","Mud","Mineral","Ice","Stone","Geyser","Mountain","Plant","Volcano","Wave","Beach","Sea","Sand","Clay","Magma","Iceberg","Rock","Fog","Vapor","Mist"],"Energy":["Pressure","Wind Energy","Heat Energy","Metal","Electricity","Magnet","Temperature","High Temperature","Low Temperature","Energy","Plasma"],"Space":["Darkness","Void","Magnetic Field","Dark Matter","Day","Night","Moon","Solar System","Galaxy","Matter","Planet","Space","Mass","Star","Sun"],"Advanced":["Gust","Tectonic Plates","Life","Time"]};
+
+const STARTERS = ["Air","Earth","Fire","Water"];
+const TOTAL_COMBOS = Object.keys(COMBOS_RAW).length + STARTERS.length;
+
+// Build COMBOS lookup: sort each key alphabetically for matching
+const COMBOS = {};
+for(const [k,v] of Object.entries(COMBOS_RAW)){
+  const parts = k.split(',').sort();
+  COMBOS[parts.join(',')] = v;
+}
+
+function getColor(name){
+  const c = COLORS_RAW[name];
+  if(c) return `rgb(${c[0]},${c[1]},${c[2]})`;
+  // deterministic fallback
+  let h=0; for(const ch of name) h=(h*31+ch.charCodeAt(0))&0xffff;
+  const hue = (h%360); return `hsl(${hue},50%,45%)`;
+}
+function getColorArr(name){
+  return COLORS_RAW[name]||[160,130,80];
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════════════════
+let discovered = [...STARTERS];
+let slots = [null,null,null,null,null];
+let craftHistory = [];
+let musicOn = true, sfxOn = true;
+let scenesSeen = 0;
+let civUnlocked = false, elaraUnlocked = false;
+let canvasElems = [];
+let selectedDict = 'Basics';
+let searchQ = '';
+let introPlaying = false;
+
+// ═══════════════════════════════════════════════════════════════════════
+// SAVE / LOAD
+// ═══════════════════════════════════════════════════════════════════════
+function saveGame(){
+  try{
+    localStorage.setItem('palchemy_save', JSON.stringify({
+      discovered, scenesSeen, civUnlocked, elaraUnlocked, craftHistory:craftHistory.slice(0,50)
+    }));
+    showToast('✦ Game Saved!');
+  }catch(e){}
+}
+function loadGame(){
+  try{
+    const s = localStorage.getItem('palchemy_save');
+    if(!s) return false;
+    const d = JSON.parse(s);
+    discovered = d.discovered||[...STARTERS];
+    scenesSeen = d.scenesSeen||0;
+    civUnlocked = d.civUnlocked||false;
+    elaraUnlocked = d.elaraUnlocked||false;
+    craftHistory = d.craftHistory||[];
+    return true;
+  }catch(e){ return false; }
+}
+function hasSave(){ return !!localStorage.getItem('palchemy_save'); }
+
+// ═══════════════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════════════
+let toastTimer=null;
+function showToast(msg,dur=2800){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('visible');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('visible'),dur);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PARTICLES
+// ═══════════════════════════════════════════════════════════════════════
+const pCanvas = document.getElementById('particleCanvas');
+const pCtx = pCanvas.getContext('2d');
+let particles=[];
+function resizeParticleCanvas(){
+  const ca=document.getElementById('canvasArea');
+  pCanvas.width=ca.clientWidth; pCanvas.height=ca.clientHeight-134;
+}
+function spawnParticles(x,y,color,count=40){
+  const [r,g,b]=getColorArr(color||'Fire');
+  for(let i=0;i<count;i++){
+    const a=Math.random()*Math.PI*2;
+    const sp=1+Math.random()*5;
+    particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-2,
+      r,g,b,life:60+Math.random()*40,maxLife:100,sz:2+Math.random()*4});
+  }
+}
+function updateParticles(){
+  pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);
+  particles=particles.filter(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.08; p.vx*=0.98; p.life--;
+    if(p.life<=0) return false;
+    const a=p.life/p.maxLife;
+    pCtx.beginPath();
+    pCtx.arc(p.x,p.y,p.sz*a,0,Math.PI*2);
+    pCtx.fillStyle=`rgba(${p.r},${p.g},${p.b},${a})`;
+    pCtx.fill();
+    return true;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// MENU BACKGROUND ANIMATION
+// ═══════════════════════════════════════════════════════════════════════
+const menuBg = document.getElementById('menuBg');
+const mbCtx = menuBg.getContext('2d');
+let menuStars=[], menuT=0;
+function initMenuBg(){
+  menuBg.width=window.innerWidth; menuBg.height=window.innerHeight;
+  menuStars=[];
+  for(let i=0;i<200;i++) menuStars.push({
+    x:Math.random()*menuBg.width, y:Math.random()*menuBg.height,
+    r:Math.random()<.7?1:Math.random()<.5?1.5:2,
+    sp:0.05+Math.random()*0.2, ph:Math.random()*Math.PI*2
+  });
+}
+function drawMenuBg(){
+  const W=menuBg.width,H=menuBg.height;
+  mbCtx.fillStyle='#07040200'; mbCtx.fillRect(0,0,W,H);
+  // nebula glow
+  const t=menuT*0.003;
+  const grd=mbCtx.createRadialGradient(W*.5,H*.35,0,W*.5,H*.35,W*.4);
+  grd.addColorStop(0,'rgba(80,40,10,0.04)');
+  grd.addColorStop(1,'rgba(0,0,0,0)');
+  mbCtx.fillStyle=grd; mbCtx.fillRect(0,0,W,H);
+  // stars
+  for(const s of menuStars){
+    s.x-=s.sp;
+    if(s.x<0){s.x=W;s.y=Math.random()*H;}
+    const a=0.4+0.4*Math.sin(menuT*0.02+s.ph);
+    mbCtx.beginPath(); mbCtx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    mbCtx.fillStyle=`rgba(255,240,200,${a})`; mbCtx.fill();
+  }
+  // loom deco
+  const ld=document.getElementById('loomDeco');
+  const lc=ld.getContext('2d');
+  const lw=120,lh=60; lc.clearRect(0,0,lw,lh);
+  const cx=lw/2,cy=lh/2;
+  for(let i=0;i<8;i++){
+    const ang=i*Math.PI/4+menuT*0.01;
+    const pulse=0.5+0.5*Math.sin(menuT*0.05+i);
+    lc.beginPath(); lc.arc(cx,cy,22+pulse*4,0,Math.PI*2);
+    lc.strokeStyle=`rgba(200,160,40,${0.08+pulse*0.08})`; lc.lineWidth=1; lc.stroke();
+    lc.beginPath(); lc.moveTo(cx,cy);
+    lc.lineTo(cx+Math.cos(ang)*26,cy+Math.sin(ang)*22);
+    lc.strokeStyle=`rgba(200,160,40,${0.15+pulse*0.1})`; lc.lineWidth=0.8; lc.stroke();
+  }
+  lc.beginPath(); lc.arc(cx,cy,8,0,Math.PI*2);
+  lc.fillStyle=`rgba(220,170,50,${0.6+0.3*Math.sin(menuT*0.05)})`; lc.fill();
+  menuT++;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// INTRO CINEMATIC ENGINE
+// ═══════════════════════════════════════════════════════════════════════
+const introCanvas = document.getElementById('introCanvas');
+const iCtx = introCanvas.getContext('2d');
+let introT=0, introRunning=false, introSkip=false;
+let introStars=[];
+
+function resizeIntro(){
+  introCanvas.width=window.innerWidth;
+  introCanvas.height=window.innerHeight;
+}
+function makeIntroStars(n=150){
+  introStars=[];
+  const W=introCanvas.width,H=introCanvas.height;
+  for(let i=0;i<n;i++) introStars.push({
+    x:Math.random()*W,y:Math.random()*H,
+    r:Math.random()<.7?1:1.5,sp:0.05+Math.random()*.4,ph:Math.random()*Math.PI*2
+  });
+}
+function drawIntroStars(t,brightness=1){
+  const W=introCanvas.width,H=introCanvas.height;
+  for(const s of introStars){
+    s.x-=s.sp; if(s.x<0){s.x=W;s.y=Math.random()*H;}
+    const a=(0.3+0.4*Math.sin(t*0.02+s.ph))*brightness;
+    iCtx.beginPath(); iCtx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    iCtx.fillStyle=`rgba(255,240,200,${a})`; iCtx.fill();
+  }
+}
+function introFade(alpha,color=[0,0,0]){
+  const [r,g,b]=color;
+  iCtx.fillStyle=`rgba(${r},${g},${b},${Math.min(1,alpha/255)})`;
+  iCtx.fillRect(0,0,introCanvas.width,introCanvas.height);
+}
+function introNarrate(text){
+  if(!text) return;
+  const W=introCanvas.width,H=introCanvas.height;
+  iCtx.font='italic 18px "Crimson Text",serif';
+  const w=iCtx.measureText(text).width;
+  const x=W/2-w/2, y=H-52;
+  iCtx.fillStyle='rgba(10,10,15,0.7)'; iCtx.fillText(text,x+1,y+1);
+  iCtx.fillStyle='rgba(245,240,228,0.95)'; iCtx.fillText(text,x,y);
+}
+function introHint(){
+  const W=introCanvas.width,H=introCanvas.height;
+  iCtx.font='13px "Crimson Text",serif';
+  iCtx.fillStyle='rgba(80,80,90,0.7)';
+  iCtx.fillText('Space / Click to skip',W-160,H-14);
+}
+function introBurst(cx,cy,n,col){
+  const ps=[];
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2, sp=2+Math.random()*7;
+    const [r,g,b]=col||[200,160,60];
+    ps.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+      r,g,b,life:60+Math.random()*40,maxLife:100,sz:2+Math.random()*4});
+  }
+  return ps;
+}
+function introDrawParticles(ps){
+  return ps.filter(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.06;p.vx*=0.985;p.life--;
+    if(p.life<=0) return false;
+    const a=p.life/p.maxLife;
+    iCtx.beginPath(); iCtx.arc(p.x,p.y,p.sz*a,0,Math.PI*2);
+    iCtx.fillStyle=`rgba(${p.r},${p.g},${p.b},${a})`; iCtx.fill();
+    return true;
+  });
+}
+function introGlow(cx,cy,radMax,color,alpha,steps=5){
+  for(let r=radMax;r>0;r-=radMax/steps){
+    const a=(r/radMax)*alpha/255;
+    iCtx.beginPath(); iCtx.arc(cx,cy,r,0,Math.PI*2);
+    iCtx.fillStyle=`rgba(${color[0]},${color[1]},${color[2]},${a})`; iCtx.fill();
+  }
+}
+
+// Timing helper — returns a promise that resolves on each frame
+function rafLoop(fn){
+  return new Promise(resolve=>{
+    let canceled=false;
+    const tick=()=>{
+      if(introSkip||canceled){resolve();return;}
+      const done=fn();
+      if(done) resolve();
+      else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+// ─── SCENE 1 & 2: THE VAST REVEAL + COMBINATION ────────────────────────
+async function sceneVastReveal(){
+  const W=introCanvas.width,H=introCanvas.height;
+  const cx=W/2,cy=H/2;
+  makeIntroStars(160);
+  let t=0,phase=0,fa=255,ps=[];
+
+  // Nyx (void/dark) and Sol (light) — drawn as glowing orbs
+  const NYX_COL=[40,10,80], SOL_COL=[255,230,100];
+
+  await rafLoop(()=>{
+    if(introSkip) return true;
+    iCtx.fillStyle='#000'; iCtx.fillRect(0,0,W,H);
+
+    // Subtle space nebula bg (brownish tint per aesthetic)
+    const bg=iCtx.createRadialGradient(cx,cy,0,cx,cy,W*.7);
+    bg.addColorStop(0,'rgba(40,20,5,0.18)');
+    bg.addColorStop(1,'rgba(0,0,0,0)');
+    iCtx.fillStyle=bg; iCtx.fillRect(0,0,W,H);
+
+    drawIntroStars(t,1);
+    const pulse=0.5+0.5*Math.sin(t*0.06);
+
+    if(phase===0){
+      // Wiggle camera offset
+      const wob=Math.sin(t*0.04)*8;
+
+      // Phase 0a: show NYX alone (left half of screen, medium-far)
+      if(t<120){
+        const nx=cx-180+wob, ny=cy+Math.sin(t*0.05)*12;
+        introGlow(nx,ny,60,NYX_COL,Math.min(255,t*4),4);
+        iCtx.beginPath();iCtx.arc(nx,ny,22,0,Math.PI*2);
+        iCtx.fillStyle=`rgba(60,20,120,0.9)`;iCtx.fill();
+        introNarrate('Before even that silence — two ancient beings stirred.');
+        if(fa>0){fa-=5;introFade(fa);}
+      }
+      // Phase 0b: show SOL alone (right)
+      else if(t<240){
+        const sx=cx+180-wob, sy=cy+Math.sin(t*0.05)*14;
+        introGlow(sx,sy,60,SOL_COL,255,4);
+        iCtx.beginPath();iCtx.arc(sx,sy,22,0,Math.PI*2);
+        iCtx.fillStyle=`rgba(255,240,120,0.9)`;iCtx.fill();
+        introNarrate('Sol — born of Light. Nyx — born of Void.');
+        if(t===120) fa=255;
+        if(fa>0){fa-=6;introFade(fa);}
+      }
+      // Phase 0c: both visible, moving closer
+      else{
+        phase=1;t=0;fa=255;
+      }
+    }
+    else if(phase===1){
+      // COMBINATION — zoom in, spiral together
+      const prog=Math.min(1,t/420);
+      const rad=260*(1-Math.pow(prog,1.5));
+      const ang=t*(0.05+prog*prog*0.15);
+      const wob=Math.sin(t*.5)*(prog*12);
+      const ox=Math.round(wob+(-prog*prog*8+Math.random()*prog*6));
+      const oy=Math.round(wob+(-prog*prog*8+Math.random()*prog*6));
+
+      // background zoom (slower)
+      const zoom=1+prog*0.15;
+      const bW=W*zoom,bH=H*zoom;
+      const bgNeb=iCtx.createRadialGradient(cx+ox,cy+oy,0,cx+ox,cy+oy,bW*.6);
+      bgNeb.addColorStop(0,'rgba(60,30,8,0.15)');
+      bgNeb.addColorStop(1,'rgba(0,0,0,0)');
+      iCtx.fillStyle=bgNeb;iCtx.fillRect(0,0,W,H);
+      drawIntroStars(t,1-prog*0.3);
+
+      const sx=cx+Math.cos(ang)*rad+ox;
+      const sy=cy+Math.sin(ang)*rad+oy;
+      const nx=cx+Math.cos(ang+Math.PI)*rad+ox;
+      const ny=cy+Math.sin(ang+Math.PI)*rad+oy;
+
+      const sz=Math.max(8,22-prog*12);
+
+      // attraction trail
+      if(prog>.3){
+        for(let i=0;i<8;i++){
+          const tr=prog*i/8;
+          const mx=sx+(cx-sx)*tr, my=sy+(cy-sy)*tr;
+          const a=(1-tr)*prog*.4;
+          iCtx.beginPath();iCtx.arc(mx,my,2,0,Math.PI*2);
+          iCtx.fillStyle=`rgba(255,210,80,${a})`;iCtx.fill();
+        }
+      }
+      // Sol
+      introGlow(sx,sy,sz+30,SOL_COL,180,3);
+      iCtx.beginPath();iCtx.arc(sx,sy,sz,0,Math.PI*2);
+      iCtx.fillStyle='rgba(255,240,140,0.9)';iCtx.fill();
+      // Nyx
+      introGlow(nx,ny,sz+30,NYX_COL,180,3);
+      iCtx.beginPath();iCtx.arc(nx,ny,sz,0,Math.PI*2);
+      iCtx.fillStyle='rgba(80,20,160,0.9)';iCtx.fill();
+
+      if(t<200) introNarrate('From their union, a spark.');
+      else if(t<350) introNarrate('The first Builders were born into existence.');
+      else introNarrate('And creation began.');
+
+      // explosion flash near merge
+      if(prog>.92){
+        const fl=Math.min(1,(prog-.92)*12);
+        iCtx.fillStyle=`rgba(255,245,220,${fl})`;iCtx.fillRect(0,0,W,H);
+        if(prog>.95&&ps.length<50) ps=introBurst(cx,cy,80,[255,200,80]);
+      }
+      ps=introDrawParticles(ps);
+
+      if(prog>=1){
+        // final bright flash
+        iCtx.fillStyle='rgba(255,255,240,1)';iCtx.fillRect(0,0,W,H);
+        return true;
+      }
+    }
+
+    introHint(); t++;
+    return false;
+  });
+}
+
+// ─── SCENE 3: TITAN SHADOW LINEUP ──────────────────────────────────────
+async function sceneTitanLineup(){
+  const W=introCanvas.width,H=introCanvas.height;
+  const cx=W/2,cy=H/2;
+  let t=0, ai=0, aa=[0,0,0,0], timer=0, fo=0;
+  const GY=H-20;
+  const px_=[W*.18,W*.38,W*.62,W*.82];
+  const tcols=[[255,80,30],[60,140,255],[130,90,35],[200,220,255]];
+  const names=['Fierro — flame','Hydral — tides','Earthos — stone','Aera — winds'];
+  const lines=[
+    'Fierro — master of flame.',
+    'Hydral — keeper of tides.',
+    'Earthos — shaper of stone.',
+    'Aera — voice of winds.',
+    'Four Titans. Bound to the Loom.'
+  ];
+
+  function drawTitanSilhouette(x,y,col,alpha,scale=1){
+    // Draw a stylized humanoid silhouette with math
+    const s=scale*60;
+    iCtx.save();
+    iCtx.globalAlpha=alpha/255;
+    iCtx.fillStyle=`rgb(${col[0]*0.1},${col[1]*0.1},${col[2]*0.1})`;
+    // body
+    iCtx.beginPath();
+    iCtx.ellipse(x,y-s*.55,s*.18,s*.35,0,0,Math.PI*2);iCtx.fill();
+    // head
+    iCtx.beginPath();
+    iCtx.arc(x,y-s*.95,s*.15,0,Math.PI*2);iCtx.fill();
+    // cape/mass
+    iCtx.beginPath();
+    iCtx.moveTo(x-s*.28,y-s*.2);
+    iCtx.lineTo(x+s*.28,y-s*.2);
+    iCtx.lineTo(x+s*.35,y+s*.05);
+    iCtx.lineTo(x-s*.35,y+s*.05);
+    iCtx.closePath();iCtx.fill();
+    // glow halo
+    const grd=iCtx.createRadialGradient(x,y-s*.6,0,x,y-s*.6,s*.5);
+    grd.addColorStop(0,`rgba(${col[0]},${col[1]},${col[2]},0.2)`);
+    grd.addColorStop(1,'rgba(0,0,0,0)');
+    iCtx.fillStyle=grd;
+    iCtx.fillRect(x-s,y-s*1.2,s*2,s*1.2);
+    iCtx.globalAlpha=1;
+    iCtx.restore();
+  }
+
+  await rafLoop(()=>{
+    if(introSkip) return true;
+    // brownish sky bg
+    const skyR=Math.min(30,5+ai*6), skyG=Math.min(25,4+ai*5);
+    iCtx.fillStyle=`rgb(${skyR},${skyG},8)`;
+    iCtx.fillRect(0,0,W,H);
+    drawIntroStars(t,0.6);
+    // ground line
+    iCtx.strokeStyle='rgba(90,60,30,0.6)';iCtx.lineWidth=1.5;
+    iCtx.beginPath();iCtx.moveTo(0,GY);iCtx.lineTo(W,GY);iCtx.stroke();
+
+    // glow behind revealed titans
+    for(let i=0;i<4;i++){
+      if(aa[i]<=0) continue;
+      const [r,g,b]=tcols[i];
+      const grd=iCtx.createRadialGradient(px_[i],GY-30,0,px_[i],GY-30,100);
+      grd.addColorStop(0,`rgba(${r},${g},${b},${(aa[i]/255)*0.12})`);
+      grd.addColorStop(1,'rgba(0,0,0,0)');
+      iCtx.fillStyle=grd;iCtx.fillRect(px_[i]-100,GY-130,200,130);
+    }
+
+    // draw silhouettes
+    for(let i=0;i<4;i++){
+      if(aa[i]<=0) continue;
+      const rise=(1-aa[i]/255)*30;
+      drawTitanSilhouette(px_[i],GY-rise,tcols[i],aa[i]);
+      // name label
+      if(aa[i]>160){
+        const la=Math.min(1,(aa[i]-160)/95);
+        iCtx.font='italic 14px "Crimson Text",serif';
+        iCtx.fillStyle=`rgba(${tcols[i][0]},${tcols[i][1]},${tcols[i][2]},${la})`;
+        const w=iCtx.measureText(names[i]).width;
+        iCtx.fillText(names[i],px_[i]-w/2,GY-80);
+      }
+    }
+
+    const cur=ai<4?lines[ai]:lines[4];
+    introNarrate(cur);
+
+    if(ai<4){
+      if(aa[ai]<255) aa[ai]=Math.min(255,aa[ai]+3);
+      else{ timer++;if(timer>90){ai++;timer=0;} }
+    } else {
+      timer++;
+      if(timer>100){ fo=Math.min(255,fo+5); introFade(fo); if(fo>=255) return true; }
+    }
+    introHint(); t++;
+    return false;
+  });
+}
+
+// ─── SCENE 4: THE ARROGANCE ─────────────────────────────────────────────
+async function sceneArrogance(){
+  const W=introCanvas.width,H=introCanvas.height;
+  const cx=W/2,cy=H/2;
+  let t=0,phase=0,ps=[],fo=0;
+  const shards=[];
+
+  function drawCompass(cx,cy,r,shadowAlpha,glassAlpha){
+    // Compass body
+    iCtx.save();
+    // outer ring
+    iCtx.beginPath();iCtx.arc(cx,cy,r,0,Math.PI*2);
+    iCtx.strokeStyle=`rgba(140,100,40,0.8)`;iCtx.lineWidth=4;iCtx.stroke();
+    iCtx.beginPath();iCtx.arc(cx,cy,r-4,0,Math.PI*2);
+    iCtx.fillStyle=`rgba(20,12,4,0.9)`;iCtx.fill();
+    // threads radiating out (loom-like)
+    for(let i=0;i<12;i++){
+      const ang=i*Math.PI/6+t*0.01;
+      const x2=cx+Math.cos(ang)*(r-6), y2=cy+Math.sin(ang)*(r-6);
+      iCtx.beginPath();iCtx.moveTo(cx,cy);iCtx.lineTo(x2,y2);
+      iCtx.strokeStyle=`rgba(180,130,50,0.15)`;iCtx.lineWidth=1;iCtx.stroke();
+    }
+    // glass pointer (shard style)
+    iCtx.save();
+    iCtx.translate(cx,cy);iCtx.rotate(t*0.008);
+    // glass needle (shard)
+    iCtx.beginPath();
+    iCtx.moveTo(0,-r*.55);iCtx.lineTo(6,0);iCtx.lineTo(0,r*.3);iCtx.lineTo(-6,0);
+    iCtx.fillStyle=`rgba(200,230,255,${glassAlpha})`;iCtx.fill();
+    iCtx.strokeStyle='rgba(180,210,255,0.5)';iCtx.lineWidth=1;iCtx.stroke();
+    iCtx.restore();
+    // shadow covering interior
+    if(shadowAlpha>0){
+      iCtx.beginPath();iCtx.arc(cx,cy,r-4,0,Math.PI*2);
+      iCtx.fillStyle=`rgba(0,0,0,${shadowAlpha})`;iCtx.fill();
+    }
+    iCtx.restore();
+  }
+
+  // Pre-create shards
+  function makeShards(){
+    for(let i=0;i<30;i++){
+      shards.push({
+        x:cx+(-100+Math.random()*200), y:cy+(-60+Math.random()*120),
+        vx:-6+Math.random()*12, vy:-10+Math.random()*5,
+        rot:Math.random()*360, rv:-8+Math.random()*16,
+        sz:15+Math.random()*40, al:255,
+        col:[Math.random()<.5?200:255, Math.random()<.5?180:220, Math.random()<.5?240:255]
+      });
+    }
+  }
+
+  // Sky scene
+  async function showSky(){
+    let st=0,fout=0;
+    await rafLoop(()=>{
+      if(introSkip) return true;
+      // beautiful sky — gradient
+      const sk=iCtx.createLinearGradient(0,0,0,H);
+      const prog=Math.min(1,st/180);
+      sk.addColorStop(0,`rgba(${Math.round(10+prog*120)},${Math.round(5+prog*60)},${Math.round(30+prog*130)},1)`);
+      sk.addColorStop(0.6,`rgba(${Math.round(30+prog*200)},${Math.round(15+prog*130)},${Math.round(5+prog*20)},1)`);
+      sk.addColorStop(1,`rgba(${Math.round(20+prog*80)},${Math.round(10+prog*40)},${Math.round(5)},1)`);
+      iCtx.fillStyle=sk;iCtx.fillRect(0,0,W,H);
+      // stars fading in sky
+      drawIntroStars(st,Math.max(0,1-prog));
+      // cloud wisps
+      for(let i=0;i<5;i++){
+        const cx2=W*(0.1+i*0.2), cy2=H*(0.2+i*0.1);
+        const grd=iCtx.createRadialGradient(cx2,cy2,0,cx2,cy2,80+prog*40);
+        grd.addColorStop(0,`rgba(220,200,255,${prog*0.15})`);
+        grd.addColorStop(1,'rgba(0,0,0,0)');
+        iCtx.fillStyle=grd;iCtx.fillRect(cx2-120,cy2-80,240,160);
+      }
+      // sun circle
+      const sr=30+prog*10;
+      introGlow(W*.75,H*.2,sr+40,[255,240,180],Math.min(255,prog*3*255),4);
+      iCtx.beginPath();iCtx.arc(W*.75,H*.2,sr,0,Math.PI*2);
+      iCtx.fillStyle=`rgba(255,245,180,${prog})`;iCtx.fill();
+      introNarrate('The Titans crafted the sky — a vault of endless blue.');
+      if(st>220){fout=Math.min(255,fout+8);introFade(fout);if(fout>=255) return true;}
+      introHint(); st++;
+      return false;
+    });
+  }
+
+  async function showOcean(){
+    let st=0,fa2=255,fout=0;
+    await rafLoop(()=>{
+      if(introSkip) return true;
+      // ocean scene
+      const dp=iCtx.createLinearGradient(0,0,0,H);
+      const p=Math.min(1,st/160);
+      dp.addColorStop(0,'rgba(5,10,30,1)');
+      dp.addColorStop(0.4,`rgba(${Math.round(5+p*20)},${Math.round(20+p*60)},${Math.round(80+p*100)},1)`);
+      dp.addColorStop(1,`rgba(${Math.round(10+p*30)},${Math.round(50+p*90)},${Math.round(150+p*80)},1)`);
+      iCtx.fillStyle=dp;iCtx.fillRect(0,0,W,H);
+      // waves
+      for(let i=0;i<6;i++){
+        const wy=H*(0.5+i*0.08)+Math.sin(st*.03+i)*8;
+        iCtx.beginPath();
+        for(let wx=0;wx<=W;wx+=4){
+          const wh=Math.sin(wx*.02+st*.04+i)*12;
+          if(wx===0) iCtx.moveTo(wx,wy+wh);
+          else iCtx.lineTo(wx,wy+wh);
+        }
+        iCtx.strokeStyle=`rgba(80,150,230,${(0.1+i*.04)*p})`;iCtx.lineWidth=2;iCtx.stroke();
+      }
+      // bioluminescence dots
+      for(let i=0;i<20;i++){
+        const bx=((i*97+st*0.5)%W);
+        const by=H*(0.55+Math.sin(st*.02+i)*.15);
+        iCtx.beginPath();iCtx.arc(bx,by,2,0,Math.PI*2);
+        iCtx.fillStyle=`rgba(80,200,255,${0.2+Math.sin(st*.05+i)*.15})`;iCtx.fill();
+      }
+      if(fa2>0){fa2=Math.max(0,fa2-8);introFade(fa2);}
+      introNarrate('The ocean — a cradle of life, fathomless and alive.');
+      if(st>220){fout=Math.min(255,fout+8);introFade(fout);if(fout>=255) return true;}
+      introHint();st++;
+      return false;
+    });
+  }
+
+  async function showStars(){
+    let st=0,fa2=255,fout=0;
+    await rafLoop(()=>{
+      if(introSkip) return true;
+      iCtx.fillStyle='#000';iCtx.fillRect(0,0,W,H);
+      // deep space
+      const bg=iCtx.createRadialGradient(cx,cy,0,cx,cy,W*.7);
+      bg.addColorStop(0,'rgba(15,8,30,1)');bg.addColorStop(1,'rgba(0,0,0,1)');
+      iCtx.fillStyle=bg;iCtx.fillRect(0,0,W,H);
+      drawIntroStars(st,Math.min(1,st/80));
+      // shooting stars
+      const shoot=(st*3.7)%W;
+      iCtx.beginPath();
+      iCtx.moveTo(shoot,H*.3);iCtx.lineTo(shoot-60,H*.3+30);
+      iCtx.strokeStyle='rgba(255,240,180,0.5)';iCtx.lineWidth=1.5;iCtx.stroke();
+      // star cluster glow
+      introGlow(cx,cy-20,60,[255,240,120],Math.min(200,st*3),4);
+      if(fa2>0){fa2=Math.max(0,fa2-6);introFade(fa2);}
+      introNarrate('And they placed stars — each one a monument to their power.');
+      if(st>220){fout=Math.min(255,fout+8);introFade(fout);if(fout>=255) return true;}
+      introHint();st++;
+      return false;
+    });
+  }
+
+  async function showCompassBreak(){
+    let st=0,shadowA=1,glassA=0.8,revealed=false,fo2=0;
+    makeShards();
+    let lps=[];
+
+    await rafLoop(()=>{
+      if(introSkip) return true;
+      iCtx.fillStyle='rgba(4,4,18,1)';iCtx.fillRect(0,0,W,H);
+      const bg=iCtx.createRadialGradient(cx,cy,0,cx,cy,W*.5);
+      bg.addColorStop(0,'rgba(30,15,5,0.2)');bg.addColorStop(1,'rgba(0,0,0,0)');
+      iCtx.fillStyle=bg;iCtx.fillRect(0,0,W,H);
+      drawIntroStars(st,0.5);
+
+      const p=Math.min(1,st/300);
+
+      if(st<120){
+        // show compass with shadow inside
+        shadowA=Math.max(0,shadowA-0.005);
+        glassA=Math.min(0.95,glassA+0.005);
+        drawCompass(cx,cy,100,shadowA,glassA);
+        introNarrate('The Primordial Loom — a perfect compass of creation.');
+      } else if(st<180){
+        // reveal interior (shadow falls away)
+        shadowA=Math.max(0,1-(st-120)/60);
+        drawCompass(cx,cy,100,shadowA,0.9);
+        // golden threads glow inside
+        const ip=1-shadowA;
+        for(let i=0;i<6;i++){
+          const ang=i*Math.PI/3+st*.01;
+          iCtx.beginPath();iCtx.moveTo(cx,cy);
+          iCtx.lineTo(cx+Math.cos(ang)*90,cy+Math.sin(ang)*90);
+          iCtx.strokeStyle=`rgba(220,180,60,${ip*0.3})`;iCtx.lineWidth=1;iCtx.stroke();
+        }
+        introNarrate('For a moment — it was perfect.');
+      } else if(st<220){
+        // red tint on compass — breaking
+        const bp=(st-180)/40;
+        iCtx.globalAlpha=1;
+        const shk=Math.round((Math.random()-.5)*bp*20);
+        iCtx.save();iCtx.translate(shk,shk*.5);
+        drawCompass(cx,cy,100,0,0.9);
+        iCtx.restore();
+        // red overlay on compass
+        iCtx.beginPath();iCtx.arc(cx,cy,100,0,Math.PI*2);
+        iCtx.fillStyle=`rgba(200,20,20,${bp*0.25})`;iCtx.fill();
+        // cracks
+        for(let i=0;i<Math.round(bp*8);i++){
+          const ang=i*Math.PI*2/8+bp*.3;
+          iCtx.beginPath();iCtx.moveTo(cx,cy);
+          iCtx.lineTo(cx+Math.cos(ang)*90*bp,cy+Math.sin(ang)*90*bp);
+          iCtx.strokeStyle=`rgba(255,60,20,${bp*0.6})`;iCtx.lineWidth=2;iCtx.stroke();
+        }
+        introNarrate('But arrogance corrodes even perfection.');
+      } else {
+        // BREAK — shards fly
+        if(!revealed){
+          revealed=true;
+          lps=introBurst(cx,cy,60,[255,100,30]);
+        }
+        // flash
+        if(st<240){
+          const fl=(st-220)/20;
+          iCtx.fillStyle=`rgba(255,200,100,${fl})`;iCtx.fillRect(0,0,W,H);
+        } else {
+          // shards flying outward then slow down — zoom into one
+          lps=introDrawParticles(lps);
+          for(const sh of shards){
+            sh.x+=sh.vx;sh.y+=sh.vy;sh.vy+=0.12;sh.rot+=sh.rv;
+            sh.al=Math.max(0,sh.al-1.5);
+            if(sh.al<=0) continue;
+            const sz=sh.sz;
+            iCtx.save();
+            iCtx.translate(sh.x,sh.y);iCtx.rotate(sh.rot*Math.PI/180);
+            iCtx.globalAlpha=sh.al/255;
+            iCtx.beginPath();
+            iCtx.moveTo(0,-sz/2);iCtx.lineTo(sz/3,0);iCtx.lineTo(0,sz/2);iCtx.lineTo(-sz/3,0);
+            iCtx.fillStyle=`rgb(${sh.col[0]},${sh.col[1]},${sh.col[2]})`;iCtx.fill();
+            iCtx.globalAlpha=1;iCtx.restore();
+          }
+
+          // Zoom into one shard — reflection of Kairos (? mark)
+          if(st>320){
+            const zp=Math.min(1,(st-320)/120);
+            const tsx=cx+100,tsy=cy+60;
+            // zoom effect
+            iCtx.save();
+            const scale=1+zp*3;
+            iCtx.translate(tsx,tsy);iCtx.scale(scale,scale);iCtx.translate(-tsx,-tsy);
+            // the shard
+            iCtx.beginPath();
+            iCtx.moveTo(tsx,-30);iCtx.lineTo(tsx+20,tsx*.0001);iCtx.lineTo(tsx,30);iCtx.lineTo(tsx-20,tsx*.0001);
+            // Don't draw - just the reflection
+            iCtx.restore();
+
+            // Reflection: ? (placeholder for Kairos face)
+            const refA=Math.min(1,(st-360)/60);
+            if(refA>0){
+              // shard surface
+              iCtx.save();
+              const refX=cx,refY=cy;
+              iCtx.beginPath();iCtx.ellipse(refX,refY,60,40,Math.PI/6,0,Math.PI*2);
+              iCtx.fillStyle=`rgba(180,210,255,${refA*0.2})`;iCtx.fill();
+              iCtx.strokeStyle=`rgba(200,230,255,${refA*0.5})`;iCtx.lineWidth=1;iCtx.stroke();
+              // ? (Kairos placeholder)
+              iCtx.font=`bold ${Math.round(48*refA)}px "Cinzel",serif`;
+              iCtx.fillStyle=`rgba(220,200,160,${refA})`;
+              const qw=iCtx.measureText('?').width;
+              iCtx.fillText('?',refX-qw/2,refY+16*refA);
+              iCtx.restore();
+            }
+          }
+          introNarrate('And reality collapsed.');
+          if(st>480){fo2=Math.min(255,fo2+5);introFade(fo2);if(fo2>=255) return true;}
+        }
+      }
+      introHint();st++;
+      return false;
+    });
+  }
+
+  await showSky();
+  if(introSkip) return;
+  await showOcean();
+  if(introSkip) return;
+  await showStars();
+  if(introSkip) return;
+  await showCompassBreak();
+}
+
+// ─── SCENE 5: KAIROS AWAKENS ────────────────────────────────────────────
+async function sceneKairosAwakens(){
+  const W=introCanvas.width,H=introCanvas.height;
+  const cx=W/2,cy=H/2;
+  let t=0,phase=0,fa=255,ps=[],typeIdx=0,typeTimer=0;
+  const typeText='Your time begins.';
+  makeIntroStars(100);
+
+  await rafLoop(()=>{
+    if(introSkip) return true;
+    // black screen after glass
+    iCtx.fillStyle='#000';iCtx.fillRect(0,0,W,H);
+
+    if(phase===0){
+      // fade in from black
+      if(fa>0){fa=Math.max(0,fa-5);introFade(fa);}
+      drawIntroStars(t,1);
+
+      // Kairos orb — void+light merged
+      const pulse=0.5+0.5*Math.sin(t*.07);
+      introGlow(cx,cy-40,80+pulse*10,[140,80,220],180,5);
+      introGlow(cx,cy-40,40,[255,230,120],100,3);
+      iCtx.beginPath();iCtx.arc(cx,cy-40,18+pulse*4,0,Math.PI*2);
+      iCtx.fillStyle='rgba(200,180,255,0.9)';iCtx.fill();
+      iCtx.beginPath();iCtx.arc(cx,cy-40,10,0,Math.PI*2);
+      iCtx.fillStyle='rgba(255,250,220,0.95)';iCtx.fill();
+
+      // orbiting sparks
+      for(let i=0;i<8;i++){
+        const ang=t*.05+i*Math.PI/4;
+        const or=55+i*2;
+        const px=cx+Math.cos(ang)*or, py=(cy-40)+Math.sin(ang)*or*.4;
+        iCtx.beginPath();iCtx.arc(px,py,2,0,Math.PI*2);
+        iCtx.fillStyle='rgba(255,210,80,0.8)';iCtx.fill();
+      }
+      ps=introDrawParticles(ps);
+      if(fa<=0&&ps.length===0&&t>100) ps=introBurst(cx,cy-40,80,[200,150,255]);
+
+      if(t>200){phase=1;t=0;typeIdx=0;typeTimer=0;}
+      introNarrate('From destruction — a child of Void and Light.');
+    } else if(phase===1){
+      // black screen, typewriter
+      iCtx.fillStyle='#000';iCtx.fillRect(0,0,W,H);
+      typeTimer++;
+      if(typeTimer%3===0&&typeIdx<typeText.length) typeIdx++;
+      const shown=typeText.slice(0,typeIdx);
+      iCtx.font='italic 28px "Cinzel",serif';
+      const tw=iCtx.measureText(shown).width;
+      iCtx.fillStyle='rgba(220,200,160,0.95)';
+      iCtx.fillText(shown,cx-tw/2,cy);
+      // cursor blink
+      if(Math.floor(t/30)%2===0&&typeIdx<typeText.length){
+        iCtx.fillStyle='rgba(220,200,160,0.7)';
+        iCtx.fillRect(cx-tw/2+tw,cy-22,2,24);
+      }
+      if(typeIdx>=typeText.length&&t>60){
+        // white flash to menu
+        const fl=Math.min(1,(t-60)/40);
+        iCtx.fillStyle=`rgba(255,255,240,${fl})`;iCtx.fillRect(0,0,W,H);
+        if(fl>=1) return true;
+      }
+    }
+    introHint(); t++;
+    return false;
+  });
+}
+
+// ─── CUTSCENE: FIRST CREATION (Stone Age) ──────────────────────────────
+async function sceneFirstCreation(){
+  const cvs=document.getElementById('cutsceneCanvas');
+  cvs.style.display='block';
+  cvs.width=window.innerWidth; cvs.height=window.innerHeight;
+  const ctx=cvs.getContext('2d');
+  const W=cvs.width,H=cvs.height;
+  const cx=W/2,cy=H/2;
+  let t=0,fo=0,fi=255;
+  const stars=[];
+  for(let i=0;i<80;i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()<.7?1:1.5});
+
+  await new Promise(resolve=>{
+    function tick(){
+      ctx.fillStyle='#030208';ctx.fillRect(0,0,W,H);
+      for(const s of stars){
+        const a=0.2+0.4*Math.sin(t*.03+s.x);
+        ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+        ctx.fillStyle=`rgba(220,210,200,${a})`;ctx.fill();
+      }
+
+      // Kairos EYES (? placeholder) — big glowing eyes in darkness
+      const eyeA=Math.min(1,(t-40)/80);
+      if(eyeA>0){
+        // Left eye
+        const lx=cx-60,ey=cy;
+        const rx=cx+60;
+        // eye glow
+        for(let ei=0;ei<2;ei++){
+          const ex=ei===0?lx:rx;
+          const eg=ctx.createRadialGradient(ex,ey,0,ex,ey,40);
+          eg.addColorStop(0,`rgba(180,150,255,${eyeA*0.4})`);
+          eg.addColorStop(1,'rgba(0,0,0,0)');
+          ctx.fillStyle=eg;ctx.fillRect(ex-40,ey-40,80,80);
+          // eye shape
+          ctx.beginPath();ctx.ellipse(ex,ey,20,12,0,0,Math.PI*2);
+          ctx.fillStyle=`rgba(15,10,25,${eyeA*0.9})`;ctx.fill();
+          // iris
+          ctx.beginPath();ctx.arc(ex,ey,8,0,Math.PI*2);
+          ctx.fillStyle=`rgba(140,100,220,${eyeA})`;ctx.fill();
+          // pupil
+          ctx.beginPath();ctx.arc(ex,ey,4,0,Math.PI*2);
+          ctx.fillStyle=`rgba(5,3,10,${eyeA})`;ctx.fill();
+          // ? placeholder
+          ctx.font=`${Math.round(10*eyeA)}px sans-serif`;
+          ctx.fillStyle=`rgba(180,160,255,${eyeA*0.5})`;
+          ctx.fillText('?',ex-3,ey+4);
+        }
+      }
+
+      // Spark / creation animation — in the eyes
+      const sp=Math.min(1,Math.max(0,(t-100)/120));
+      if(sp>0){
+        const sc=[255,160,50];
+        // spark grows in right eye
+        const sr=sp*25;
+        for(let r=sr;r>0;r-=sr/4){
+          const sa=(r/sr)*sp*.6;
+          ctx.beginPath();ctx.arc(cx+60,cy,r,0,Math.PI*2);
+          ctx.fillStyle=`rgba(${sc[0]},${sc[1]},${sc[2]},${sa})`;ctx.fill();
+        }
+        ctx.beginPath();ctx.arc(cx+60,cy,4+sp*4,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,240,200,${sp})`;ctx.fill();
+        // rays from spark
+        for(let i=0;i<8;i++){
+          const ang=i*Math.PI/4+t*.05;
+          const len=sp*40;
+          ctx.beginPath();ctx.moveTo(cx+60,cy);
+          ctx.lineTo(cx+60+Math.cos(ang)*len,cy+Math.sin(ang)*len);
+          ctx.strokeStyle=`rgba(255,200,80,${sp*0.3})`;ctx.lineWidth=1;ctx.stroke();
+        }
+      }
+
+      // Text
+      const ta=Math.min(1,Math.max(0,(t-60)/40));
+      if(ta>0){
+        ctx.font='italic 20px "Crimson Text",serif';
+        ctx.fillStyle=`rgba(200,180,140,${ta})`;
+        const msg='You see the first spark of civilization in your creation.';
+        const mw=ctx.measureText(msg).width;
+        ctx.fillText(msg,cx-Math.min(mw,W-80)/2,H-50);
+      }
+
+      // fade in/out
+      if(fi>0){fi=Math.max(0,fi-6);ctx.fillStyle=`rgba(0,0,0,${fi/255})`;ctx.fillRect(0,0,W,H);}
+      if(t>280){fo=Math.min(255,fo+6);ctx.fillStyle=`rgba(0,0,0,${fo/255})`;ctx.fillRect(0,0,W,H);
+        if(fo>=255){cvs.style.display='none';resolve();return;}}
+      t++;
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+// ─── CUTSCENE: ELARA ────────────────────────────────────────────────────
+async function sceneElara(){
+  const cvs=document.getElementById('cutsceneCanvas');
+  cvs.style.display='block';
+  cvs.width=window.innerWidth; cvs.height=window.innerHeight;
+  const ctx=cvs.getContext('2d');
+  const W=cvs.width,H=cvs.height;
+  const cx=W/2,cy=H/2;
+  let t=0,fo=0,fi=255,phase=0;
+  // Metal age background — city silhouette
+  const buildingHeights=[120,180,150,200,160,140,170,190,130,165];
+
+  function drawMetalAgeCity(alpha){
+    const ha=H-80;
+    ctx.fillStyle=`rgba(15,12,8,${alpha})`;
+    for(let i=0;i<buildingHeights.length;i++){
+      const bx=W*.05+i*(W*.09);
+      const bh=buildingHeights[i];
+      ctx.fillRect(bx,ha-bh,W*.07,bh);
+      // windows
+      for(let wy=ha-bh+10;wy<ha-10;wy+=20){
+        for(let wx=bx+5;wx<bx+W*.07-5;wx+=14){
+          if(Math.random()<.6){
+            ctx.fillStyle=`rgba(200,170,80,${alpha*0.3})`;
+            ctx.fillRect(wx,wy,6,8);
+          }
+        }
+      }
+      ctx.fillStyle=`rgba(15,12,8,${alpha})`;
+    }
+    // ground
+    ctx.fillStyle=`rgba(30,20,10,${alpha})`;
+    ctx.fillRect(0,H-80,W,80);
+    // road
+    ctx.fillStyle=`rgba(40,30,15,${alpha})`;
+    ctx.fillRect(0,H-55,W,35);
+  }
+
+  function drawKairosWalking(x,alpha){
+    // Kairos silhouette walking (brownish hooded figure)
+    ctx.save();ctx.globalAlpha=alpha;
+    const gy=H-58; // ground y
+    const bob=Math.sin(t*.1)*3;
+    // cloak
+    ctx.beginPath();
+    ctx.moveTo(x,gy-80+bob);ctx.lineTo(x-20,gy+bob);ctx.lineTo(x+20,gy+bob);ctx.closePath();
+    ctx.fillStyle='rgba(60,40,20,0.9)';ctx.fill();
+    // head
+    ctx.beginPath();ctx.arc(x,gy-90+bob,14,0,Math.PI*2);
+    ctx.fillStyle='rgba(50,30,15,0.9)';ctx.fill();
+    // ? (Kairos placeholder)
+    ctx.font='bold 12px sans-serif';ctx.fillStyle='rgba(180,140,60,0.7)';
+    ctx.fillText('?',x-4,gy-86+bob);
+    // subtle glow
+    const grd=ctx.createRadialGradient(x,gy-50+bob,0,x,gy-50+bob,40);
+    grd.addColorStop(0,'rgba(180,140,60,0.06)');grd.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=grd;ctx.fillRect(x-40,gy-90,80,90);
+    ctx.restore();
+  }
+
+  function drawElaraHand(x,y,alpha,tapping){
+    // ? placeholder for Elara hand
+    ctx.save();ctx.globalAlpha=alpha;
+    ctx.font='28px sans-serif';ctx.fillStyle='rgba(200,160,220,0.8)';
+    ctx.fillText('?',x-10,y);
+    // shoulder tap effect
+    if(tapping){
+      ctx.strokeStyle=`rgba(200,160,220,${alpha*0.5})`;ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(x,y-14,18,0,Math.PI*2);ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  await new Promise(resolve=>{
+    function tick(){
+      // Background — metal age
+      const bgGrd=ctx.createLinearGradient(0,0,0,H);
+      bgGrd.addColorStop(0,'rgba(8,6,18,1)');
+      bgGrd.addColorStop(0.7,'rgba(15,10,25,1)');
+      bgGrd.addColorStop(1,'rgba(25,15,8,1)');
+      ctx.fillStyle=bgGrd;ctx.fillRect(0,0,W,H);
+
+      // stars
+      for(let i=0;i<60;i++){
+        const sx=(i*137.5)%W,sy=(i*89.3)%H*.5;
+        const sa=0.2+0.3*Math.sin(t*.03+i);
+        ctx.beginPath();ctx.arc(sx,sy,1,0,Math.PI*2);
+        ctx.fillStyle=`rgba(200,195,220,${sa})`;ctx.fill();
+      }
+
+      const cityA=Math.min(1,t/80);
+      drawMetalAgeCity(cityA);
+
+      // Kairos walking slowly across screen
+      const kx=cx-200+(t*.4);
+      const kA=Math.min(1,Math.max(0,(t-30)/60));
+      drawKairosWalking(Math.min(cx+50,kx),kA);
+
+      // Phase transitions
+      if(phase===0&&t>200) phase=1;
+      if(phase===1){
+        // Elara appears — shoulder tap (shoulder camera view)
+        const ep=Math.min(1,(t-200)/80);
+        const tapX=Math.min(cx+50,kx)+18, tapY=H-115;
+        drawElaraHand(tapX,tapY,ep,t>250);
+
+        // shoulder view indicator
+        if(ep>.5){
+          ctx.save();
+          ctx.globalAlpha=(ep-.5)*2*.3;
+          ctx.strokeStyle='rgba(200,160,220,0.4)';ctx.lineWidth=1;
+          ctx.strokeRect(tapX-30,tapY-30,80,80);
+          ctx.restore();
+        }
+      }
+
+      // Narration
+      let narr='';
+      if(t<120) narr='You walked through your creation unrecognized.';
+      else if(t<200) narr='The Metal Age — iron and shadow.';
+      else if(t<280) narr='Then — someone reached out.';
+      else narr='"Excuse me... are you lost too?" — Elara';
+
+      const ta=Math.min(1,t/40);
+      ctx.font='italic 20px "Crimson Text",serif';
+      const nw=ctx.measureText(narr).width;
+      ctx.fillStyle=`rgba(10,8,4,${ta*0.7})`;ctx.fillText(narr,cx-nw/2+1,H-29+1);
+      ctx.fillStyle=`rgba(220,200,160,${ta})`;ctx.fillText(narr,cx-nw/2,H-30);
+
+      ctx.font='11px "Crimson Text",serif';
+      ctx.fillStyle='rgba(80,70,50,0.6)';
+      ctx.fillText('Click / Space to skip',W-160,H-12);
+
+      // fade in/out
+      if(fi>0){fi=Math.max(0,fi-5);ctx.fillStyle=`rgba(0,0,0,${fi/255})`;ctx.fillRect(0,0,W,H);}
+      if(t>380){fo=Math.min(255,fo+5);ctx.fillStyle=`rgba(0,0,0,${fo/255})`;ctx.fillRect(0,0,W,H);
+        if(fo>=255){cvs.style.display='none';resolve();return;}}
+      t++;
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+// ─── MAIN INTRO (NEW GAME) ─────────────────────────────────────────────
+async function playNewGameIntro(){
+  resizeIntro();
+  introCanvas.style.display='block';
+  introRunning=true; introSkip=false;
+
+  // Show fullscreen notice
+  const fsn=document.getElementById('fsNotice');
+  fsn.style.opacity='1';
+  setTimeout(()=>fsn.style.opacity='0',5000);
+
+  // Skip on space/click
+  const skipHandler=(e)=>{
+    if(e.type==='keydown'&&(e.key==='Escape'||e.key===' ')) introSkip=true;
+    if(e.type==='click') introSkip=true;
+  };
+  document.addEventListener('keydown',skipHandler);
+  document.addEventListener('click',skipHandler);
+
+  // Scene 1-2: Vast Reveal + Combination
+  await sceneVastReveal();
+  if(!introSkip){
+    // Scene 3: Titan Lineup
+    await sceneTitanLineup();
+  }
+  if(!introSkip){
+    // Scene 4: Arrogance
+    await sceneArrogance();
+  }
+  // Scene 5: Kairos Awakens (typing + flash)
+  if(!introSkip){
+    await sceneKairosAwakens();
+  } else {
+    // Quick flash to menu
+    await new Promise(r=>{
+      let fl=0;
+      const t=setInterval(()=>{
+        iCtx.fillStyle=`rgba(255,255,240,${fl/255})`;
+        iCtx.fillRect(0,0,introCanvas.width,introCanvas.height);
+        fl+=15; if(fl>=255){clearInterval(t);r();}
+      },16);
+    });
+  }
+
+  document.removeEventListener('keydown',skipHandler);
+  document.removeEventListener('click',skipHandler);
+  introCanvas.style.display='none';
+  introRunning=false;
+  scenesSeen=6;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// COMBINATION ENGINE
+// ═══════════════════════════════════════════════════════════════════════
+function tryCombine(names){
+  // sort and join for lookup
+  const sorted=[...names].filter(Boolean).sort();
+  // try all subset sizes ≥2
+  for(let len=sorted.length;len>=2;len--){
+    // try all combinations of `len` items from sorted
+    const combos=getCombinations(sorted,len);
+    for(const combo of combos){
+      const key=combo.join(',');
+      if(COMBOS[key]) return COMBOS[key];
+    }
+  }
+  return null;
+}
+function getCombinations(arr,len){
+  if(len===arr.length) return [arr];
+  if(len===1) return arr.map(x=>[x]);
+  const result=[];
+  for(let i=0;i<=arr.length-len;i++){
+    const rest=arr.slice(i+1);
+    const sub=getCombinations(rest,len-1);
+    for(const s of sub) result.push([arr[i],...s]);
+  }
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// CRAFT SLOTS
+// ═══════════════════════════════════════════════════════════════════════
+function getActiveSlots(){
+  const dc=discovered.length;
+  if(dc>=40) return 5;
+  if(dc>=25) return 4;
+  if(dc>=10) return 3;
+  return 3;
+}
+function renderSlots(){
+  const active=getActiveSlots();
+  for(let i=0;i<5;i++){
+    const sl=document.getElementById(`slot${i}`);
+    sl.style.display=i<active?'flex':'none';
+    sl.innerHTML='';
+    sl.classList.remove('filled','drop-target');
+    if(slots[i]){
+      sl.classList.add('filled');
+      const col=getColor(slots[i]);
+      const dot=document.createElement('div');
+      dot.style.cssText=`width:10px;height:10px;border-radius:50%;background:${col};margin:0 auto 2px;`;
+      const nm=document.createElement('div');
+      nm.style.cssText='font-size:.6rem;color:#c8a060;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px;';
+      nm.textContent=slots[i];
+      sl.appendChild(dot);sl.appendChild(nm);
+    } else {
+      sl.innerHTML='<span style="color:#3a2810;font-size:.65rem;">drop</span>';
+    }
+  }
+}
+
+function doCraft(){
+  const filled=slots.filter(Boolean);
+  if(filled.length<2){showToast('Add at least 2 elements to the forge.');return;}
+  const result=tryCombine(filled);
+  if(!result){showToast('✗ No reaction — try different elements.');return;}
+
+  const isNew=!discovered.includes(result);
+  if(isNew){
+    discovered.push(result);
+    spawnParticles(
+      document.getElementById('craftBtn').getBoundingClientRect().left-
+      document.getElementById('canvasArea').getBoundingClientRect().left+32,
+      document.getElementById('craftBtn').getBoundingClientRect().top-
+      document.getElementById('canvasArea').getBoundingClientRect().top-44+32,
+      result,50
+    );
+    showToast(`✦ DISCOVERED: ${result}!`,3500);
+    craftHistory.unshift({ingredients:[...filled],result,ts:Date.now()});
+    craftHistory=craftHistory.slice(0,50);
+    checkUnlocks();
+    checkMidGameCutscenes();
+  } else {
+    showToast(`⚗ Forged: ${result}`);
+    craftHistory.unshift({ingredients:[...filled],result,ts:Date.now()});
+    craftHistory=craftHistory.slice(0,50);
+  }
+  slots=Array(5).fill(null);
+  renderSlots();
+  renderSidebar();
+  updateDiscCount();
+  renderHistory();
+}
+
+function checkUnlocks(){
+  const dc=discovered.length;
+  if(dc>=15&&!civUnlocked){
+    civUnlocked=true;
+    document.getElementById('btnCiv').style.display='block';
+    showToast('✦ CIVILIZATION MODE UNLOCKED!',4000);
+  }
+  if(dc>=25&&!elaraUnlocked){
+    elaraUnlocked=true;
+    document.getElementById('btnElara').style.display='block';
+    showToast("⚗ ELARA'S TABLE UNLOCKED!",4000);
+  }
+}
+
+let cutsceneScheduled=false;
+async function checkMidGameCutscenes(){
+  if(cutsceneScheduled) return;
+  const dc=discovered.length;
+  // First creation scene — triggers around stone age (15 discoveries)
+  if(dc>=15&&scenesSeen<7){
+    scenesSeen=7;cutsceneScheduled=true;
+    await new Promise(r=>setTimeout(r,1000));
+    await sceneFirstCreation();
+    cutsceneScheduled=false;
+  }
+  // Elara scene
+  if(elaraUnlocked&&scenesSeen<8){
+    scenesSeen=8;cutsceneScheduled=true;
+    await new Promise(r=>setTimeout(r,1200));
+    await sceneElara();
+    cutsceneScheduled=false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════════════════════════════════
+let recentlyDiscovered=new Set();
+function renderSidebar(){
+  const list=document.getElementById('elemList');
+  const q=searchQ.toLowerCase();
+  const filtered=discovered.filter(n=>n.toLowerCase().includes(q));
+  list.innerHTML='';
+  for(const name of filtered){
+    const div=document.createElement('div');
+    div.className='elem-item';
+    div.dataset.name=name;
+    const dot=document.createElement('div');
+    dot.className='elem-dot';
+    dot.style.background=getColor(name);
+    const nm=document.createElement('div');
+    nm.className='elem-name'; nm.textContent=name;
+    div.appendChild(dot);div.appendChild(nm);
+    if(recentlyDiscovered.has(name)){
+      const badge=document.createElement('div');
+      badge.className='elem-new';badge.textContent='NEW';
+      div.appendChild(badge);
+    }
+    div.addEventListener('mousedown',e=>startDragFromSidebar(name,e));
+    div.addEventListener('dblclick',()=>addToCanvas(name));
+    list.appendChild(div);
+  }
+}
+function updateDiscCount(){
+  document.getElementById('discCount').textContent=`Found: ${discovered.length} / ${TOTAL_COMBOS}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// CANVAS ELEMENTS (drag/drop on canvas)
+// ═══════════════════════════════════════════════════════════════════════
+function addToCanvas(name,x,y){
+  const ca=document.getElementById('canvasArea');
+  const rect=ca.getBoundingClientRect();
+  const el=document.createElement('div');
+  el.className='canvas-elem';
+  el.dataset.name=name;
+  const cx2=x||Math.random()*(rect.width-100)+50;
+  const cy2=y||Math.random()*(rect.height-180)+80;
+  el.style.left=(cx2-34)+'px';
+  el.style.top=(cy2-30)+'px';
+  const dot=document.createElement('div');
+  dot.className='ce-dot';dot.style.background=getColor(name);
+  const nm=document.createElement('div');
+  nm.className='ce-name';nm.textContent=name;
+  el.appendChild(dot);el.appendChild(nm);
+  el.addEventListener('mousedown',e=>startDragFromCanvas(el,e));
+  document.getElementById('elemContainer').appendChild(el);
+  canvasElems.push({el,name});
+  return el;
+}
+function clearCanvas(){
+  document.getElementById('elemContainer').innerHTML='';
+  canvasElems=[];
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// DRAG & DROP
+// ═══════════════════════════════════════════════════════════════════════
+let dragState=null;
+const ghost=document.getElementById('dragGhost');
+
+function startDragFromSidebar(name,e){
+  e.preventDefault();
+  dragState={type:'sidebar',name,x:e.clientX,y:e.clientY};
+  ghost.style.display='flex';
+  document.getElementById('ghostDot').style.background=getColor(name);
+  document.getElementById('ghostName').textContent=name;
+  updateGhostPos(e.clientX,e.clientY);
+}
+function startDragFromCanvas(el,e){
+  e.preventDefault();
+  dragState={type:'canvas',el,name:el.dataset.name,x:e.clientX,y:e.clientY,
+    startLeft:parseInt(el.style.left),startTop:parseInt(el.style.top)};
+  el.classList.add('dragging');
+  ghost.style.display='none'; // canvas drags move the element directly
+}
+function updateGhostPos(x,y){
+  ghost.style.left=x+'px'; ghost.style.top=y+'px';
+}
+
+document.addEventListener('mousemove',e=>{
+  if(!dragState) return;
+  if(dragState.type==='sidebar'){
+    updateGhostPos(e.clientX,e.clientY);
+    // highlight slots
+    highlightDropTargets(e.clientX,e.clientY);
+  } else if(dragState.type==='canvas'){
+    const dx=e.clientX-dragState.x, dy=e.clientY-dragState.y;
+    const el=dragState.el;
+    const newL=dragState.startLeft+dx, newT=dragState.startTop+dy;
+    el.style.left=Math.max(0,newL)+'px';
+    el.style.top=Math.max(0,newT)+'px';
+  }
+});
+
+document.addEventListener('mouseup',e=>{
+  if(!dragState) return;
+  const ds=dragState; dragState=null;
+  ghost.style.display='none';
+  clearSlotHighlights();
+
+  if(ds.type==='sidebar'){
+    // Check if dropped on a slot
+    const slotIdx=getSlotAtPos(e.clientX,e.clientY);
+    if(slotIdx!==-1){
+      slots[slotIdx]=ds.name; renderSlots();
+    } else {
+      // dropped on canvas
+      const ca=document.getElementById('canvasArea');
+      const rect=ca.getBoundingClientRect();
+      if(e.clientX>=rect.left&&e.clientX<=rect.right&&
+         e.clientY>=rect.top+44&&e.clientY<=rect.bottom-90){
+        addToCanvas(ds.name,e.clientX-rect.left,e.clientY-rect.top-44);
+      }
+    }
+  } else if(ds.type==='canvas'){
+    ds.el.classList.remove('dragging');
+    // Check drop on slot
+    const slotIdx=getSlotAtPos(e.clientX,e.clientY);
+    if(slotIdx!==-1){
+      slots[slotIdx]=ds.name;
+      ds.el.remove();
+      canvasElems=canvasElems.filter(c=>c.el!==ds.el);
+      renderSlots();
+    } else {
+      // Check merge with another canvas element
+      const overlap=canvasElems.find(c=>{
+        if(c.el===ds.el) return false;
+        const r1=c.el.getBoundingClientRect();
+        const r2=ds.el.getBoundingClientRect();
+        return !(r1.right<r2.left||r1.left>r2.right||r1.bottom<r2.top||r1.top>r2.bottom);
+      });
+      if(overlap){
+        const res=tryCombine([ds.name,overlap.name]);
+        if(res){
+          const cx3=parseFloat(ds.el.style.left)+34;
+          const cy3=parseFloat(ds.el.style.top)+30;
+          ds.el.remove(); overlap.el.remove();
+          canvasElems=canvasElems.filter(c=>c.el!==ds.el&&c.el!==overlap.el);
+          const isNew=!discovered.includes(res);
+          if(isNew){
+            discovered.push(res);
+            recentlyDiscovered.add(res);setTimeout(()=>recentlyDiscovered.delete(res),8000);
+            showToast(`✦ DISCOVERED: ${res}!`,3500);
+            craftHistory.unshift({ingredients:[ds.name,overlap.name],result:res,ts:Date.now()});
+            spawnParticles(cx3,cy3,res,50);
+            checkUnlocks(); checkMidGameCutscenes();
+          } else {
+            showToast(`⚗ ${res}`);
+            craftHistory.unshift({ingredients:[ds.name,overlap.name],result:res,ts:Date.now()});
+          }
+          addToCanvas(res,cx3,cy3);
+          renderSidebar(); updateDiscCount(); renderHistory();
+        }
+      }
+    }
+  }
+});
+
+function getSlotAtPos(mx,my){
+  for(let i=0;i<5;i++){
+    const sl=document.getElementById(`slot${i}`);
+    if(sl.style.display==='none') continue;
+    const r=sl.getBoundingClientRect();
+    if(mx>=r.left&&mx<=r.right&&my>=r.top&&my<=r.bottom) return i;
+  }
+  return -1;
+}
+function highlightDropTargets(mx,my){
+  for(let i=0;i<5;i++){
+    const sl=document.getElementById(`slot${i}`);
+    if(sl.style.display==='none') continue;
+    const r=sl.getBoundingClientRect();
+    if(mx>=r.left&&mx<=r.right&&my>=r.top&&my<=r.bottom)
+      sl.classList.add('drop-target');
+    else sl.classList.remove('drop-target');
+  }
+}
+function clearSlotHighlights(){
+  for(let i=0;i<5;i++) document.getElementById(`slot${i}`).classList.remove('drop-target');
+}
+
+// Slot click — remove
+for(let i=0;i<5;i++){
+  document.getElementById(`slot${i}`).addEventListener('click',()=>{
+    if(slots[i]){slots[i]=null;renderSlots();}
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════════════════════════════
+function renderHistory(){
+  const list=document.getElementById('histList');
+  list.innerHTML='';
+  for(const h of craftHistory.slice(0,20)){
+    const d=document.createElement('div');
+    d.className='hist-item';
+    d.innerHTML=`${h.ingredients.join(' + ')} → <span>${h.result}</span>`;
+    list.appendChild(d);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// DICTIONARY
+// ═══════════════════════════════════════════════════════════════════════
+function openDict(){
+  document.getElementById('dictOverlay').classList.add('open');
+  renderDictCats();
+  renderDictItems(selectedDict);
+  document.getElementById('dictCount').textContent=`${discovered.length} / ${TOTAL_COMBOS} discovered`;
+}
+function renderDictCats(){
+  const cats=document.getElementById('dictCats');
+  cats.innerHTML='';
+  for(const cat of Object.keys(CATEGORIES).concat(['All'])){
+    const btn=document.createElement('button');
+    btn.className='dict-cat-btn'+(cat===selectedDict?' active':'');
+    const total=cat==='All'?discovered.length:
+      (CATEGORIES[cat]||[]).filter(e=>discovered.includes(e)).length;
+    const max=cat==='All'?discovered.length:(CATEGORIES[cat]||[]).length;
+    btn.textContent=`${cat} (${total}/${max})`;
+    btn.addEventListener('click',()=>{selectedDict=cat;renderDictCats();renderDictItems(cat);});
+    cats.appendChild(btn);
+  }
+}
+function renderDictItems(cat){
+  const container=document.getElementById('dictItems');
+  container.innerHTML='';
+  const items=cat==='All'?discovered:
+    (CATEGORIES[cat]||[]).filter(e=>discovered.includes(e));
+  for(const name of items){
+    const d=document.createElement('div');
+    d.className='dict-item';
+    const dot=document.createElement('div');dot.className='di-dot';dot.style.background=getColor(name);
+    const nm=document.createElement('div');nm.className='di-name';nm.textContent=name;
+    d.appendChild(dot);d.appendChild(nm);
+    container.appendChild(d);
+  }
+  if(items.length===0){
+    container.innerHTML='<div style="color:#6a5030;font-style:italic;padding:20px;">Nothing discovered in this category yet.</div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// QUESTS
+// ═══════════════════════════════════════════════════════════════════════
+const QUESTS=[
+  {name:'The First Spark',desc:'Discover your first new element',reward:'10 elements known',check:d=>d.length>=5},
+  {name:'Elemental Harmony',desc:'Discover all 4 basic elements\' combinations',reward:'Nature unlocked',check:d=>['Mist','Wind','Heat','Land','Ocean'].every(e=>d.includes(e))},
+  {name:'Birth of Nature',desc:'Discover 20 elements',reward:'Forge power grows',check:d=>d.length>=20},
+  {name:'The Living World',desc:'Discover Life',reward:'Civilization seeds',check:d=>d.includes('Life')},
+  {name:'Humanity Rises',desc:'Discover Human',reward:'Civilization unlocked',check:d=>d.includes('Human')},
+  {name:'The Heavens Above',desc:'Discover Moon, Sun, and Star',reward:'Space category',check:d=>['Moon','Sun','Star'].every(e=>d.includes(e))},
+  {name:'Cosmic Vision',desc:'Discover Space',reward:'The cosmos awaits',check:d=>d.includes('Space')},
+  {name:'Energy Mastered',desc:'Discover Electricity and Energy',reward:'Industrial power',check:d=>['Electricity','Energy'].every(e=>d.includes(e))},
+  {name:'The Great Cycle',desc:'Discover Life, Death, and Time',reward:'Wisdom of ages',check:d=>['Life','Death','Time'].every(e=>d.includes(e))},
+  {name:'Civilization Dawns',desc:'Discover Civilization',reward:'The Magnum Opus begins',check:d=>d.includes('Civilization')},
+  {name:'The Philosopher\'s Path',desc:'Discover 50 elements',reward:'Philosopher\'s Stone hints',check:d=>d.length>=50},
+  {name:'Kairos\'s Legacy',desc:'Discover 100 elements',reward:'The Primordial Loom resonates',check:d=>d.length>=100},
+  {name:'The Eternal Weave',desc:'Discover Eternity',reward:'Time itself bends',check:d=>d.includes('Eternity')},
+  {name:'Origin of All',desc:'Discover Origin and Big Bang',reward:'The cosmos revealed',check:d=>['Origin','Big Bang'].every(e=>d.includes(e))},
+];
+function openQuests(){
+  document.getElementById('questOverlay').classList.add('open');
+  renderQuests();
+}
+function renderQuests(){
+  const list=document.getElementById('questList');
+  list.innerHTML='';
+  const done=QUESTS.filter(q=>q.check(discovered)).length;
+  document.getElementById('questProgress').textContent=`${done} / ${QUESTS.length} completed`;
+  for(const q of QUESTS){
+    const completed=q.check(discovered);
+    const d=document.createElement('div');
+    d.className='quest-item'+(completed?' done':'');
+    d.innerHTML=`
+      <div class="quest-status">${completed?'✦':'◇'}</div>
+      <div class="quest-info">
+        <h4>${q.name}</h4>
+        <p>${q.desc}</p>
+      </div>
+      <div class="quest-reward" style="color:${completed?'#8aaa30':'#5a4820'}">${q.reward}</div>
+    `;
+    list.appendChild(d);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// GAME LOOP (particle animation)
+// ═══════════════════════════════════════════════════════════════════════
+let menuAnimRunning=false;
+function menuLoop(){
+  if(!menuAnimRunning) return;
+  menuBg.width=window.innerWidth; menuBg.height=window.innerHeight;
+  drawMenuBg();
+  requestAnimationFrame(menuLoop);
+}
+
+function startMenuAnim(){
+  menuAnimRunning=true;
+  initMenuBg();
+  menuLoop();
+}
+function stopMenuAnim(){ menuAnimRunning=false; }
+
+let gameAnimRunning=false;
+function gameLoop(){
+  if(!gameAnimRunning) return;
+  updateParticles();
+  requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SCREEN TRANSITIONS
+// ═══════════════════════════════════════════════════════════════════════
+function showMenu(){
+  document.getElementById('menuScreen').style.display='flex';
+  document.getElementById('gameScreen').style.display='none';
+  document.getElementById('dictOverlay').classList.remove('open');
+  document.getElementById('questOverlay').classList.remove('open');
+  document.getElementById('historyPanel').classList.remove('open');
+  gameAnimRunning=false;
+  // Update menu buttons
+  const hs=hasSave();
+  document.getElementById('btnResume').style.display=hs?'block':'none';
+  document.getElementById('btnLoad').style.display=hs?'block':'none';
+  document.getElementById('btnNew').textContent=hs?'NEW GAME':'START GAME';
+  startMenuAnim();
+}
+
+function showGame(){
+  document.getElementById('menuScreen').style.display='none';
+  document.getElementById('gameScreen').style.display='flex';
+  stopMenuAnim();
+  gameAnimRunning=true;
+  resizeParticleCanvas();
+  renderSidebar();
+  updateDiscCount();
+  renderSlots();
+  renderHistory();
+  // show unlock buttons
+  if(civUnlocked) document.getElementById('btnCiv').style.display='block';
+  if(elaraUnlocked) document.getElementById('btnElara').style.display='block';
+  gameLoop();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ═══════════════════════════════════════════════════════════════════════
+// Menu buttons
+document.getElementById('btnNew').addEventListener('click',async()=>{
+  // Reset
+  discovered=[...STARTERS];scenesSeen=0;
+  civUnlocked=false;elaraUnlocked=false;craftHistory=[];slots=Array(5).fill(null);
+  stopMenuAnim();
+  await playNewGameIntro();
+  showGame();
+  showToast('The Forge has been reborn! Begin your alchemical journey...', 4000);
+});
+
+document.getElementById('btnResume').addEventListener('click',()=>{
+  if(loadGame()) showGame();
+});
+document.getElementById('btnLoad').addEventListener('click',()=>{
+  if(loadGame()) showGame();
+  else showToast('No save file found.');
+});
+document.getElementById('btnSettings').addEventListener('click',()=>{
+  document.getElementById('settingsOverlay').classList.add('open');
+});
+
+// Settings
+document.getElementById('toggleMusic').addEventListener('click',()=>{
+  musicOn=!musicOn;
+  document.getElementById('toggleMusic').textContent=musicOn?'ON':'OFF';
+  document.getElementById('toggleMusic').className='toggle-btn'+(musicOn?' on':'');
+});
+document.getElementById('toggleSfx').addEventListener('click',()=>{
+  sfxOn=!sfxOn;
+  document.getElementById('toggleSfx').textContent=sfxOn?'ON':'OFF';
+  document.getElementById('toggleSfx').className='toggle-btn'+(sfxOn?' on':'');
+});
+document.getElementById('settingsClose').addEventListener('click',()=>{
+  document.getElementById('settingsOverlay').classList.remove('open');
+});
+
+// Game buttons
+document.getElementById('craftBtn').addEventListener('click',doCraft);
+document.getElementById('clearBtn').addEventListener('click',()=>{slots=Array(5).fill(null);renderSlots();});
+document.getElementById('btnClean').addEventListener('click',clearCanvas);
+document.getElementById('btnSave').addEventListener('click',saveGame);
+document.getElementById('btnDict').addEventListener('click',openDict);
+document.getElementById('btnHist').addEventListener('click',()=>{
+  document.getElementById('historyPanel').classList.toggle('open');
+  renderHistory();
+});
+document.getElementById('btnQuests').addEventListener('click',openQuests);
+document.getElementById('btnGameSettings').addEventListener('click',()=>{
+  document.getElementById('settingsOverlay').classList.add('open');
+});
+document.getElementById('btnCiv').addEventListener('click',()=>{
+  showToast('Civilization mode — coming in the full game!',3000);
+});
+document.getElementById('btnElara').addEventListener('click',()=>{
+  showToast("⚗ Elara's Table — advanced research unlocked!",3000);
+  if(scenesSeen<8){ checkMidGameCutscenes(); }
+});
+
+// Dict / Quest close
+document.getElementById('dictClose').addEventListener('click',()=>document.getElementById('dictOverlay').classList.remove('open'));
+document.getElementById('questClose').addEventListener('click',()=>document.getElementById('questOverlay').classList.remove('open'));
+document.getElementById('histClose').addEventListener('click',()=>document.getElementById('historyPanel').classList.remove('open'));
+
+// Search
+document.getElementById('searchBar').addEventListener('input',e=>{
+  searchQ=e.target.value; renderSidebar();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown',e=>{
+  if(introRunning) return;
+  if(e.key==='Escape'){
+    document.getElementById('dictOverlay').classList.remove('open');
+    document.getElementById('questOverlay').classList.remove('open');
+    document.getElementById('settingsOverlay').classList.remove('open');
+    document.getElementById('historyPanel').classList.remove('open');
+  }
+  if(e.key===' '&&e.target.tagName!=='INPUT'){
+    e.preventDefault();
+    if(document.getElementById('gameScreen').style.display!=='none') doCraft();
+  }
+});
+
+// Window resize
+window.addEventListener('resize',()=>{
+  resizeIntro();
+  resizeParticleCanvas();
+  initMenuBg();
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// FULLSCREEN NOTICE dismiss
+// ═══════════════════════════════════════════════════════════════════════
+setTimeout(()=>{
+  const fn=document.getElementById('fsNotice');
+  fn.style.transition='opacity 1s';fn.style.opacity='0';
+  setTimeout(()=>fn.style.display='none',5000);
+},8000);
+
+// ═══════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════
+showMenu();
+</script>
+</body>
+</html>
